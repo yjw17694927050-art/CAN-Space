@@ -27,9 +27,10 @@
 **目标**：先修"地基"（去锁定、通用 AI 层、i18n 基建），避免后面返工。
 
 ### 1.1 去车型锁定（PRD R1.4）
-- [ ] 抽离 `ai_client.py` 中硬编码的 `SYSTEM_PROMPT`（Hyundai/Kona）。
-- [ ] 引入"车型知识包 / vehicle knowledge pack"概念：车型特征(总线速率、字节序、counter/checksum 位置习惯)为可配置 JSON，AI 提示词按所选包组装。
-- [ ] 提供默认通用包（不指定车厂）。
+- [x] 抽离 `ai_client.py` 中硬编码的 `SYSTEM_PROMPT`（Hyundai/Kona）。
+- [x] 引入"车型知识包 / vehicle knowledge pack"概念：车型特征(总线速率、字节序、counter/checksum 位置习惯)为可配置 JSON，AI 提示词按所选包组装（`core/vehicle_pack.py` + `canlab/vehicle_packs/*.json`；`AIWorker.vehicle_pack` 参数驱动）。
+- [x] 提供默认通用包（不指定车厂）。
+- [ ] （后续任务）设置页/模型配置处提供"车型知识包"下拉选择，落地"所选包"的用户侧切换。
 
 ### 1.2 通用 AI Provider 抽象层（PRD R3.1）
 - [ ] 新增 `_run_openai_compatible()`：base_url + api_key + model 三参数即可复用任一 OpenAI 兼容端点。
