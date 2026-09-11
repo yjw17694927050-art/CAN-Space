@@ -33,9 +33,10 @@
 - [ ] （后续任务）设置页/模型配置处提供"车型知识包"下拉选择，落地"所选包"的用户侧切换。
 
 ### 1.2 通用 AI Provider 抽象层（PRD R3.1）
-- [ ] 新增 `_run_openai_compatible()`：base_url + api_key + model 三参数即可复用任一 OpenAI 兼容端点。
-- [ ] 把 Anthropic / Groq / OpenAI-兼容 统一进一个 provider 注册表（config 驱动，消除 `ai_client.py` 平铺 if/elif）。
-- [ ] 保留对已有 provider 的兼容（老配置不破坏）。
+- [x] 新增 `_run_openai_compatible()`：base_url + api_key + model 三参数即可复用任一 OpenAI 兼容端点（基于 `requests` 流式 SSE，不新增 openai 依赖）。
+- [x] 把 Anthropic / Groq / OpenAI-兼容 统一进一个 provider 注册表（config 驱动，消除 `ai_client.py` 平铺 if/elif）：`ProviderSpec` + `PROVIDERS` + `get_provider()`，`run()` 按 `spec.kind` 分发。
+- [x] 保留对已有 provider 的兼容（老配置不破坏）：Groq 独立 groq_key 兼容、Ollama 免鉴权、Anthropic 路径不变、默认模型取自注册表。
+- [ ] （后续任务）设置页/模型配置：为每 provider 提供独立 base_url / api_key / model 编辑与下拉（归入 P2 · R3.3）。
 
 ### 1.3 i18n 基建（PRD R1.1 / R1.2）
 - [ ] 确定语言包方案（Qt `tr()` + `.ts`，或自建轻量 dict 语言包；以小项目故倾向自建）。
