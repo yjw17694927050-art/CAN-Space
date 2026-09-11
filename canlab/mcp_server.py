@@ -1,4 +1,4 @@
-"""CanLab MCP server — expose CAN reverse-engineering tools to an MCP client
+﻿"""CAN-Space MCP server — expose CAN reverse-engineering tools to an MCP client
 (e.g. Claude Code / Claude Desktop) so the analysis loop is agent-drivable.
 
 Run it as a stdio MCP server:

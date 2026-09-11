@@ -1,10 +1,10 @@
-import pandas as pd
+﻿import pandas as pd
 import numpy as np
 import re
 from pathlib import Path
 
 """
-Log parsers for CanLab.
+Log parsers for CAN-Space.
 
 Every parser returns a DataFrame with the canonical schema:
     Timestamp (float, seconds), ID (canonical hex string), Bus (int),

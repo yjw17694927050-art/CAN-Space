@@ -1,4 +1,4 @@
-# CAN-Space — 产品需求文档 / Product Requirements Document (PRD)
+﻿# CAN-Space — 产品需求文档 / Product Requirements Document (PRD)
 
 | 项 Item | 值 Value |
 |---|---|
@@ -13,16 +13,16 @@
 
 ## 0. 开发溯源声明 / Provenance Declaration
 
-> **本产品 CAN-Space 是基于开源项目 CanLab 二次开发（fork + 个人化改造）的个人工具。**
+> **本产品 CAN-Space 是基于开源项目 CAN-Space 二次开发（fork + 个人化改造）的个人工具。**
 >
-> - **上游上游（Upstream）**：CanLab — CAN Bus Reverse-Engineering Workstation
+> - **上游上游（Upstream）**：CAN-Space — CAN Bus Reverse-Engineering Workstation
 >   原作者（Author）：Sherin Joseph Roy
->   上游仓库（Upstream repo）：https://github.com/Sherin-SEF-AI/CanLab
+>   上游仓库（Upstream repo）：https://github.com/Sherin-SEF-AI/CAN-Space
 >   上游许可证（License）：MIT
 >   - 项目根 README（本目录 README.md）保留了上游的完整功能说明、安全警告与致谢，作为功能溯源与合规依据。
 > - **本产品仓库（This repo）**：https://github.com/yjw17694927050-art/CAN（本地目录名：`CAN-Space`）
 > - **与上游的关系**：在保留上游全部功能与安全机制（ARM TX 安全门、首次启动声明、只读 UDS 默认等）的前提下，针对**中文支持、界面简化、国产大模型接入、个人化工作流与商业化方向**进行二次开发。
-> - **许可证义务**：因为上游为 MIT，本项目的二次开发与分发须保留上游版权声明与许可证文本（见 LICENSE）。任何派生代码在使用/分发时均需注明基于 Upstream: CanLab 开发。
+> - **许可证义务**：因为上游为 MIT，本项目的二次开发与分发须保留上游版权声明与许可证文本（见 LICENSE）。任何派生代码在使用/分发时均需注明基于 Upstream: CAN-Space 开发。
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### 1.1 现状
 
-CanLab（上游）已经是一个功能完整、包含 15 个标签页、覆盖采集/回放/分析/AI/诊断/注入的 CAN 总线逆向工程工作站。经过一次完整代码审查和一批修复（见 ROADMAP 与 README 中 Recent fixes），项目运行稳定、测试通过。
+CAN-Space（上游）已经是一个功能完整、包含 15 个标签页、覆盖采集/回放/分析/AI/诊断/注入的 CAN 总线逆向工程工作站。经过一次完整代码审查和一批修复（见 ROADMAP 与 README 中 Recent fixes），项目运行稳定、测试通过。
 
 ### 1.2 为什么做个人化
 
@@ -42,7 +42,7 @@ CanLab（上游）已经是一个功能完整、包含 15 个标签页、覆盖�
 
 ### 1.3 目标
 
-把 CanLab 从"强大的通用工具"改造成"**属于一个人的、简单顺手、接中国生态的 CAN 逆向工作台**"，并为未来的商业化留下一块可验证的根基。
+把 CAN-Space 从"强大的通用工具"改造成"**属于一个人的、简单顺手、接中国生态的 CAN 逆向工作台**"，并为未来的商业化留下一块可验证的根基。
 
 ---
 

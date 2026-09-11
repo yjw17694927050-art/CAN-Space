@@ -1,9 +1,9 @@
-# CAN-Space — CAN Bus Reverse-Engineering Workbench
+﻿# CAN-Space — CAN Bus Reverse-Engineering Workbench
 
 > **本项目为派生项目 / This is a derivative project**
 >
-> **CAN-Space** 是基于开源项目 **CanLab**（由 Sherin Joseph Roy 开发，
-> https://github.com/Sherin-SEF-AI/CanLab，MIT 许可证）二次开发的个人化版本。
+> **CAN-Space** 是基于开源项目 **CAN-Space**（由 Sherin Joseph Roy 开发，
+> https://github.com/Sherin-SEF-AI/CAN-Space，MIT 许可证）二次开发的个人化版本。
 > 本 README 保留了上游的完整功能说明、安全警告与致谢，作为功能溯源与合规依据。
 > 二次开发在保留上游全部功能与安全机制的前提下，聚焦中文支持、界面简化、国产大模型
 > 接入与个人化工作流。详见 [PRD.md](PRD.md) 与 [ROADMAP.md](ROADMAP.md)。
@@ -177,7 +177,7 @@ the fitted scale is snapped to neat OEM values when that barely changes the deco
 | Standard DBC | Yes | Yes (cantools-parseable) |
 | openpilot DBC | Yes (opendbc cross-reference) | Yes (cantools-parseable) |
 | Vector CANdb++ | No | Yes (`BA_DEF_` blocks) |
-| AUTOSAR ARXML 4.3 | Yes | **Experimental** — round-trips within CanLab but is **not** validated against the full AUTOSAR schema; don't rely on it in external AUTOSAR tools yet |
+| AUTOSAR ARXML 4.3 | Yes | **Experimental** — round-trips within CAN-Space but is **not** validated against the full AUTOSAR schema; don't rely on it in external AUTOSAR tools yet |
 | Wireshark Lua dissector | No | Yes (little- and big-endian; big-endian verified against cantools) |
 | Excel/CSV CAN matrix | Yes | No |
 
@@ -193,7 +193,7 @@ each OEM DBC. First run needs network access.
 
 Providers: **Anthropic** (`claude-sonnet-5` / `claude-opus-4-8`), **Groq**
 (Llama 3.x), and **Ollama** (any local model, no API key). Before an AI call,
-CanLab runs the offline detectors and injects their findings (byte roles, message
+CAN-Space runs the offline detectors and injects their findings (byte roles, message
 type/period, checksum guess, similar IDs) into the prompt so the model reasons on
 structured facts rather than raw hex. Configure in Settings → API Keys.
 
@@ -296,4 +296,4 @@ MIT License. See [LICENSE](LICENSE).
 
 **作者（本派生 Author of this fork）:** 本仓库维护者
 **仓库（Repository）:** https://github.com/yjw17694927050-art/CAN
-**上游（Upstream）:** CanLab — https://github.com/Sherin-SEF-AI/CanLab （作者 Sherin Joseph Roy，MIT）
+**上游（Upstream）:** CAN-Space — https://github.com/Sherin-SEF-AI/CAN-Space （作者 Sherin Joseph Roy，MIT）

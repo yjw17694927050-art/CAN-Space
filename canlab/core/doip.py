@@ -1,7 +1,7 @@
-"""
+﻿"""
 DoIP (Diagnostics over IP, ISO 13400-2) client — standard library only.
 
-Wraps UDS payloads for Ethernet-based vehicles so CanLab's diagnostic tooling
+Wraps UDS payloads for Ethernet-based vehicles so CAN-Space's diagnostic tooling
 can reach an ECU over TCP instead of a CAN bus.  Uses ``socket`` exclusively:
 TCP for the diagnostic session, UDP broadcast for vehicle discovery.
 

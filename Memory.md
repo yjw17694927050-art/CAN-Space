@@ -1,4 +1,4 @@
-# CanLab 项目记忆 / Project Memory
+﻿# CAN-Space 项目记忆 / Project Memory
 
 > **用途**：个人开发者的长期记忆文档。每次代码更新或提交后，须同步更新本文档（见「维护约定」）。
 > **最近同步时间**：2026-09-11
@@ -8,11 +8,11 @@
 
 ## 1. 项目概况
 
-**CanLab** 是一个 CAN 总线逆向分析桌面工具（PyQt6）。功能覆盖实时采集、日志解析（CSV/BLF/MDF 等）、DBC 解析/生成、信号分析、校验和/计数器识别、帧注入、UDS/DOIP 诊断、J1939、OBD2、网关、回放等。
+**CAN-Space** 是一个 CAN 总线逆向分析桌面工具（PyQt6）。功能覆盖实时采集、日志解析（CSV/BLF/MDF 等）、DBC 解析/生成、信号分析、校验和/计数器识别、帧注入、UDS/DOIP 诊断、J1939、OBD2、网关、回放等。
 
 - 入口：`canlab/main.py`
 - 构建规格：`canlab.spec`（PyInstaller）
-- 启动脚本：`启动CanLab.bat`
+- 启动脚本：`启动CAN-Space.bat`
 - 运行依赖：`requirements.txt`
 
 ## 2. 技术栈
@@ -27,13 +27,13 @@
 ## 3. 目录结构
 
 ```
-CANlab/
+CAN-Space/
 ├── AGENT.md                  # AGENT 开发指导（双语）
 ├── SPEC.md                   # 技术规格说明
 ├── 个人开发规范.md             # 个人化工程约定
-├── CANlab个人化改造清单.docx   # 改造清单（一次性交付物）
+├── CAN-Space个人化改造清单.docx   # 改造清单（一次性交付物）
 ├── README.md / LICENSE
-├── launch: 启动CanLab.bat
+├── launch: 启动CAN-Space.bat
 ├── canlab/
 │   ├── main.py               # 入口
 │   ├── mainwindow.py         # 主窗口，_stop_tab_workers() 关窗回收线程
@@ -79,7 +79,7 @@ CANlab/
 
 ## 5. Git 信息
 
-- 远端：`origin = https://github.com/yjw17694927050-art/CAN.git`
+- 远端：`origin = https://github.com/yjw17694927050-art/CAN-Space.git`（仓库已由 CAN 更名）
 - 提交身份：`YJW <yjw17694927050@gmail.com>`
 - 提交规范：语义化前缀（`fix:`/`feat:`/`test:`/`docs:`/`refactor:`）
 - 追加提交用 `--force-with-lease`（勿用裸 `--force` 覆写他人）。

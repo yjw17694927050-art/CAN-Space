@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-"""CanLab — CAN Bus Reverse Engineering Workstation."""
+﻿#!/usr/bin/env python3
+"""CAN-Space — CAN Bus Reverse Engineering Workstation."""
 import sys
 import os
 
@@ -15,7 +15,7 @@ from mainwindow import MainWindow
 _DISCLAIMER = """\
 SAFETY WARNING — READ BEFORE USE
 
-CanLab can inject frames, replay logs, and fuzz CAN buses.
+CAN-Space can inject frames, replay logs, and fuzz CAN buses.
 These features MUST only be used on isolated bench setups
 (benchtop ECUs, vcan0, or dedicated lab hardware).
 
@@ -29,12 +29,12 @@ only on isolated, non-safety-critical hardware.
 
 
 def _show_safety_disclaimer(app: QApplication) -> None:
-    settings = QSettings("CanLab", "CanLab")
+    settings = QSettings("CAN-Space", "CAN-Space")
     if settings.value("disclaimer_accepted", False, type=bool):
         return
 
     box = QMessageBox()
-    box.setWindowTitle("CanLab — Safety Warning")
+    box.setWindowTitle("CAN-Space — Safety Warning")
     box.setIcon(QMessageBox.Icon.Warning)
     box.setText(_DISCLAIMER)
     box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
@@ -53,8 +53,8 @@ def _show_safety_disclaimer(app: QApplication) -> None:
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("CanLab")
-    app.setOrganizationName("CanLab")
+    app.setApplicationName("CAN-Space")
+    app.setOrganizationName("CAN-Space")
     app.setStyleSheet(QSS)
     app.setFont(mono_font())
 

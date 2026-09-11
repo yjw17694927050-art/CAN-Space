@@ -1,6 +1,6 @@
-"""Reference-driven signal calibration + verification.
+﻿"""Reference-driven signal calibration + verification.
 
-CanLab's other engines (entropy, correlation, checksum) are *reference-free*:
+CAN-Space's other engines (entropy, correlation, checksum) are *reference-free*:
 they surface candidate bytes but can't prove what a byte means. This module
 closes the loop — given a time-aligned **physical reference** (vehicle speed from
 OBD-II, GPS speed, or a value OCR'd from a dashboard video), it searches every
@@ -47,7 +47,7 @@ def _byte_matrix(frames_for_id: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 def _extract_raw(mat: np.ndarray, start_bit: int, length: int, big_endian: bool) -> np.ndarray | None:
     """Vectorized little/big-endian bit-field extraction from an (N,8) byte matrix.
 
-    Little-endian follows CanLab's intra-frame convention (bit i of the field is
+    Little-endian follows CAN-Space's intra-frame convention (bit i of the field is
     bit (start_bit+i) of the 64-bit frame, B0 = bits 0-7). Big-endian is the
     byte-reversed reading of the same byte span (Motorola, byte-aligned).
     """
@@ -196,7 +196,7 @@ def best_signal(frames_df: pd.DataFrame, ref_ts, ref_val, **kw) -> dict | None:
 
 
 def candidate_to_signal_def(cand: dict, signal_name: str, unit: str = "") -> dict:
-    """Turn a calibration result into a CanLab DBC signal-def dict."""
+    """Turn a calibration result into a CAN-Space DBC signal-def dict."""
     return {
         "message_id":  cand["id"],
         "signal_name": signal_name,

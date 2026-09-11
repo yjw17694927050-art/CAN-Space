@@ -1,8 +1,8 @@
-# CAN-Space — 路线图 ROADMAP
+﻿# CAN-Space — 路线图 ROADMAP
 
 > 由 **PRD.md** 派生。排期与工期为**估算值（受开发进度、需求变化影响）**，不是承诺。每阶段含明确的退出标准（Exit Criteria）以便验收。
 
-项目基于上游 **CanLab**（Sherin-SEF-AI/CanLab，MIT）二次开发。详见 PRD.md §0。
+项目基于上游 **CAN-Space**（Sherin-SEF-AI/CAN-Space，MIT）二次开发。详见 PRD.md §0。
 
 阶段命名：**P = 基建（Foundation）、E = 体验（Experience）、D = 数据（Data）、C = 商业化（Commercialization）**。
 前三个阶段是"把工具打磨成个人工具"；商业化是独立长周期阶段，不抢占前三项的工期。

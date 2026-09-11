@@ -1,5 +1,5 @@
-"""
-Example seed-key script for CanLab Security Access.
+﻿"""
+Example seed-key script for CAN-Space Security Access.
 
 Drop this file (or a derivative) into any folder, then point
 DIAGNOSTICS → SECURITY ACCESS → Script (.py) at it.

@@ -1,11 +1,11 @@
-# CAN-Space — 技术规格说明书 / Technical Specification
+﻿# CAN-Space — 技术规格说明书 / Technical Specification
 
 > **版本 Version**：1.0（Alpha）
 > **日期 Date**：2026-09-10
 > **状态 Status**：活跃开发中 / Active development
 >
-> **开发溯源 Provenance**：本产品 **CAN-Space** 基于开源 **CanLab**
-> （`https://github.com/Sherin-SEF-AI/CanLab`，Sherin Joseph Roy，MIT）二次开发。
+> **开发溯源 Provenance**：本产品 **CAN-Space** 基于开源 **CAN-Space**
+> （`https://github.com/Sherin-SEF-AI/CAN-Space`，Sherin Joseph Roy，MIT）二次开发。
 > 详见 [PRD.md](PRD.md) §0。
 >
 > **语言 Language**：中英对照。中文为主，技术术语保留英文，方便中文开发者理解。
@@ -14,7 +14,7 @@
 
 ## 1. 总览 / Overview
 
-CAN-Space 是一个用于 CAN 总线数据逆向工程的桌面应用程序（基于 CanLab 二次开发）。它提供了采集（capture）、分析（analysis）、解码（decode）、以及在隔离台架（isolated bench setup）上注入（inject）CAN 帧的工具。应用程序基于 Python 3.11+ 与 PyQt6 构建。
+CAN-Space 是一个用于 CAN 总线数据逆向工程的桌面应用程序（基于 CAN-Space 二次开发）。它提供了采集（capture）、分析（analysis）、解码（decode）、以及在隔离台架（isolated bench setup）上注入（inject）CAN 帧的工具。应用程序基于 Python 3.11+ 与 PyQt6 构建。
 
 ### 1.1 目标 / Goals
 
@@ -267,7 +267,7 @@ def require_armed() -> None:
 ### 6.3 MCP 服务器 / MCP Server
 
 - 供外部 AI 工具调用的 Model Context Protocol 服务器
-- 暴露 CanLab 状态与分析结果
+- 暴露 CAN-Space 状态与分析结果
 - 在 localhost 运行，需显式启用
 
 ---
@@ -368,7 +368,7 @@ pytest tests/test_gui_tabs.py -v    # 界面测试 UI tests（需 pytest-qt、Qt
 # 构建独立可执行文件 Build standalone executable
 pyinstaller canlab.spec
 
-# 输出到 dist/CanLab/
+# 输出到 dist/CAN-Space/
 ```
 
 ### 10.2 PyInstaller 规格 / PyInstaller Spec（`canlab.spec`）

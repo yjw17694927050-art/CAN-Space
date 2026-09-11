@@ -1,4 +1,4 @@
-import os
+﻿import os
 import can
 import pandas as pd
 from PyQt6.QtWidgets import (
@@ -927,7 +927,7 @@ class MainWindow(QMainWindow):
         if not self._plugins:
             return
 
-        settings = QSettings("CanLab", "CanLab")
+        settings = QSettings("CAN-Space", "CAN-Space")
         approved = set(settings.value("approved_plugins", [], type=list) or [])
 
         pending = [p for p in self._plugins
@@ -938,7 +938,7 @@ class MainWindow(QMainWindow):
                                 for p in pending)
             reply = QMessageBox.question(
                 self, "Approve plugins?",
-                "CanLab found plugin(s) that will run with full app "
+                "CAN-Space found plugin(s) that will run with full app "
                 "privileges:\n\n" + listing +
                 "\n\nOnly approve plugins you trust. Load them now?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

@@ -1,4 +1,4 @@
-"""Example CanLab plugin: a custom exporter.
+﻿"""Example CAN-Space plugin: a custom exporter.
 
 Adds a "Tools" action that writes a per-ID summary CSV (id, count, mean period,
 per-byte entropy) of the loaded capture — a template for your own exporters.

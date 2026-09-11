@@ -1,13 +1,13 @@
-# CanLab Plugin SDK
+﻿# CAN-Space Plugin SDK
 
-CanLab loads plugins from `~/.canlab/plugins/*.py`. Plugins let you add menu
-actions, custom exporters, or new detectors without touching CanLab's source.
+CAN-Space loads plugins from `~/.canlab/plugins/*.py`. Plugins let you add menu
+actions, custom exporters, or new detectors without touching CAN-Space's source.
 
 ## Security model
 
 Plugin **metadata** (name/version) is read statically without executing code, so
 merely listing plugins never runs anything. A plugin's code executes only when it
-is **activated**, and activation requires **explicit approval**: on startup CanLab
+is **activated**, and activation requires **explicit approval**: on startup CAN-Space
 lists any new or changed plugin and runs it only if you say Yes. Approval is
 trust-on-first-use, keyed by the file's SHA-256 — editing an approved plugin
 changes its hash and re-prompts, so approved code can't be silently swapped out.
@@ -52,5 +52,5 @@ See `canlab/examples/plugins/`:
 - `id_summary_exporter.py` — a custom exporter (per-ID summary CSV) — a template
   for your own export formats.
 
-Copy either into `~/.canlab/plugins/` and restart CanLab (or reopen the Plugins
+Copy either into `~/.canlab/plugins/` and restart CAN-Space (or reopen the Plugins
 panel) to load it.

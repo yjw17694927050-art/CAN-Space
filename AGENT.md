@@ -1,4 +1,4 @@
-# CAN-Space — 开发与协作指南 / Agent Guide
+﻿# CAN-Space — 开发与协作指南 / Agent Guide
 
 > **用途 Purpose**: 本文档帮助 AI 代理（Claude、Copilot 等）以及所有贡献者理解、构建、测试并参与本项目的开发。它是项目约定、架构决策与开发工作流的唯一权威来源（single source of truth）。
 >
@@ -8,13 +8,13 @@
 
 ## 项目简介 / Project Identity
 
-> **开发溯源 Provenance**：本产品 **CAN-Space** 是基于开源项目 **CanLab**（上游 Upstream：
-> `https://github.com/Sherin-SEF-AI/CanLab`，作者 Sherin Joseph Roy，MIT 许可证）二次开发
+> **开发溯源 Provenance**：本产品 **CAN-Space** 是基于开源项目 **CAN-Space**（上游 Upstream：
+> `https://github.com/Sherin-SEF-AI/CAN-Space`，作者 Sherin Joseph Roy，MIT 许可证）二次开发
 > （fork + 个人化改造）。在保留上游全部功能与安全机制的前提下，针对中文支持、界面简化、
 > 国产大模型接入与个人化工作流进行改造。因上游为 MIT，派生代码分发时须保留上游版权与
 > 许可证文本（见 LICENSE）。详见 [PRD.md](PRD.md) §0。
 
-- **名称 Name**: CAN-Space — CAN 总线逆向工程工作台 / CAN Bus Reverse-Engineering Workbench（基于 CanLab 二次开发）
+- **名称 Name**: CAN-Space — CAN 总线逆向工程工作台 / CAN Bus Reverse-Engineering Workbench（基于 CAN-Space 二次开发）
 - **语言 Language**: Python 3.11+
 - **界面框架 GUI Framework**: PyQt6
 - **许可证 License**: MIT（上游同源）

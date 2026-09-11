@@ -1,10 +1,10 @@
-"""
+﻿"""
 XCP-over-CAN read/measurement client (ASAM MCD-1 XCP).
 
 This is a **read-only** subset of XCP: it lets you CONNECT to an ECU/slave and
 read (measure) internal variables by memory address. It deliberately implements
 *no* memory-write / programming commands (DOWNLOAD, PROGRAM, MODIFY_BITS, …), so
-it never puts a value onto the ECU and therefore never needs CanLab's transmit
+it never puts a value onto the ECU and therefore never needs CAN-Space's transmit
 safety gate (``core.safety.require_armed``). CONNECT / UPLOAD do send CAN frames,
 but they are pure reads of ECU state — the same category as UDS ReadDataByIdentifier.
 

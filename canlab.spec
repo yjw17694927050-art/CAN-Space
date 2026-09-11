@@ -1,5 +1,5 @@
-# -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for CanLab — AI-powered CAN bus workstation."""
+﻿# -*- mode: python ; coding: utf-8 -*-
+"""PyInstaller spec for CAN-Space — AI-powered CAN bus workstation."""
 
 import sys
 from pathlib import Path
@@ -63,7 +63,7 @@ a = Analysis(
     excludes=[
         "tkinter",
         "IPython", "jupyter",
-        # Bloat — not used by CanLab
+        # Bloat — not used by CAN-Space
         "torch", "torchvision", "torchaudio",
         "nvidia", "triton",
         "onnxruntime", "onnx",
@@ -91,7 +91,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="CanLab",
+    name="CAN-Space",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -109,5 +109,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="CanLab",
+    name="CAN-Space",
 )

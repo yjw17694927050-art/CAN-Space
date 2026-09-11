@@ -1,4 +1,4 @@
-"""Calibration refinements: sentinel masking and OEM scale/offset snapping.
+﻿"""Calibration refinements: sentinel masking and OEM scale/offset snapping.
 
 These algorithms are ported/adapted from CSS Electronics' "CAN bus reverse
 engineering skills" (scripts/common.py), MIT-licensed:
@@ -6,7 +6,7 @@ engineering skills" (scripts/common.py), MIT-licensed:
     Copyright (c) 2026 CSS Electronics
     https://github.com/CSS-Electronics/can-bus-reverse-engineering-skills
 
-Adapted for CanLab's native reference calibrator. Three ideas are carried over:
+Adapted for CAN-Space's native reference calibrator. Three ideas are carried over:
 
   1. Sentinel masking — "signal unavailable" codes (0xFFFF, 0x3FFF, most-negative)
      read far outside the real data band and wreck a least-squares fit. Mask them

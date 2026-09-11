@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -60,4 +60,4 @@ jobs:
         run: pyinstaller --noconfirm canlab.spec
 
       - name: Smoke-check the built binary exists
-        run: test -x dist/CanLab/CanLab
+        run: test -x dist/CAN-Space/CAN-Space
