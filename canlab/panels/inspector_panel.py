@@ -9,6 +9,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 import pyqtgraph as pg
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 
@@ -30,13 +31,13 @@ class InspectorPanel(QWidget):
         lay.setContentsMargins(4, 4, 4, 4)
         lay.setSpacing(4)
 
-        self.lbl_id = QLabel("SELECT AN ID")
+        self.lbl_id = QLabel(tr("inspector.select_id"))
         self.lbl_id.setObjectName("label_green")
         self.lbl_id.setFont(mono_font(10, bold=True))
         lay.addWidget(self.lbl_id)
 
         # Hex dump
-        lbl_hex = QLabel("LAST 10 FRAMES")
+        lbl_hex = QLabel(tr("inspector.last10"))
         lbl_hex.setObjectName("label_dim")
         lbl_hex.setFont(mono_font(8))
         lay.addWidget(lbl_hex)
@@ -48,7 +49,7 @@ class InspectorPanel(QWidget):
         lay.addWidget(self.hex_dump)
 
         # Byte heatmap
-        lbl_heat = QLabel("BYTE ACTIVITY")
+        lbl_heat = QLabel(tr("inspector.byte_activity"))
         lbl_heat.setObjectName("label_dim")
         lbl_heat.setFont(mono_font(8))
         lay.addWidget(lbl_heat)
@@ -58,7 +59,7 @@ class InspectorPanel(QWidget):
         lay.addWidget(self.heatmap_widget)
 
         # Stats grid
-        lbl_stats = QLabel("BYTE STATS (min/max/mean)")
+        lbl_stats = QLabel(tr("inspector.byte_stats"))
         lbl_stats.setObjectName("label_dim")
         lbl_stats.setFont(mono_font(8))
         lay.addWidget(lbl_stats)
@@ -70,14 +71,14 @@ class InspectorPanel(QWidget):
         lay.addWidget(self.stats_text)
 
         # Type badge
-        self.type_badge = QLabel("TYPE: UNKNOWN")
+        self.type_badge = QLabel(tr("inspector.type", stype="UNKNOWN"))
         self.type_badge.setFont(mono_font(9, bold=True))
         self.type_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.type_badge.setFixedHeight(22)
         lay.addWidget(self.type_badge)
 
         # Send to AI
-        self.btn_ai = QPushButton("Send to AI Engine")
+        self.btn_ai = QPushButton(tr("inspector.send_ai"))
         self.btn_ai.setObjectName("btn_amber")
         self.btn_ai.clicked.connect(lambda: self.send_to_ai.emit(self._current_id))
         lay.addWidget(self.btn_ai)
@@ -92,7 +93,7 @@ class InspectorPanel(QWidget):
         self.lbl_id.setText(f"0x{hex_id}")
 
         if frames.empty:
-            self.hex_dump.setPlainText("No frames")
+            self.hex_dump.setPlainText(tr("inspector.no_frames"))
             return
 
         # Hex dump
@@ -144,7 +145,7 @@ class InspectorPanel(QWidget):
             "UNKNOWN":     COLORS["text"],
         }
         color = type_colors.get(stype, COLORS["text"])
-        self.type_badge.setText(f"TYPE: {stype}")
+        self.type_badge.setText(tr("inspector.type", stype=stype))
         self.type_badge.setStyleSheet(
             f"color: {color}; border: 1px solid {color}; "
             f"background: {COLORS['panel_bg']}; font-family: 'Courier New'; font-size: 9pt;"

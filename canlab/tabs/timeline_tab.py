@@ -22,6 +22,7 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 BYTE_COLS = [f"B{i}" for i in range(8)]
 MAX_ROWS  = 8
@@ -58,8 +59,8 @@ class TimelineTab(QWidget):
         self._tabs.setFont(mono_font(8))
         outer.addWidget(self._tabs)
 
-        self._tabs.addTab(self._build_signal_tab(), "SIGNAL VIEW")
-        self._tabs.addTab(self._build_video_tab(),  "VIDEO SYNC")
+        self._tabs.addTab(self._build_signal_tab(), tr("tl.signal_view"))
+        self._tabs.addTab(self._build_video_tab(),  tr("tl.video_sync"))
 
     # ── SIGNAL VIEW sub-tab ───────────────────────────────────────────────────
 
@@ -72,23 +73,23 @@ class TimelineTab(QWidget):
         left = QWidget()
         ll   = QVBoxLayout(left)
         ll.setContentsMargins(4, 4, 4, 4)
-        ll.addWidget(QLabel("SELECT SIGNALS  (up to 8)", font=mono_font(8)))
+        ll.addWidget(QLabel(tr("tl.select_signals"), font=mono_font(8)))
 
         self.sig_list = QListWidget()
         self.sig_list.setFont(mono_font(8))
         self.sig_list.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         ll.addWidget(self.sig_list)
 
-        self.btn_plot = QPushButton("▶  Plot Selected")
+        self.btn_plot = QPushButton(tr("tl.btn_plot"))
         self.btn_plot.setObjectName("btn_green")
         self.btn_plot.clicked.connect(self._plot_selected)
         ll.addWidget(self.btn_plot)
 
-        self.btn_clear = QPushButton("Clear")
+        self.btn_clear = QPushButton(tr("tl.btn_clear"))
         self.btn_clear.clicked.connect(self._clear_plots)
         ll.addWidget(self.btn_clear)
 
-        self.lbl_status = QLabel("Load frames to begin.", font=mono_font(8))
+        self.lbl_status = QLabel(tr("tl.status_load_frames"), font=mono_font(8))
         self.lbl_status.setStyleSheet(f"color:{COLORS['dim']}")
         ll.addWidget(self.lbl_status)
 
@@ -118,37 +119,34 @@ class TimelineTab(QWidget):
         # ── Top toolbar ──
         toolbar = QHBoxLayout()
 
-        self.btn_load_video = QPushButton("Load Video…")
+        self.btn_load_video = QPushButton(tr("tl.btn_load_video"))
         self.btn_load_video.clicked.connect(self._load_video)
         toolbar.addWidget(self.btn_load_video)
 
-        self.btn_play_pause = QPushButton("▶ Play")
+        self.btn_play_pause = QPushButton(tr("tl.btn_play"))
         self.btn_play_pause.setObjectName("btn_green")
         self.btn_play_pause.clicked.connect(self._toggle_play)
         self.btn_play_pause.setEnabled(False)
         toolbar.addWidget(self.btn_play_pause)
 
-        self.btn_stop_vid = QPushButton("■ Stop")
+        self.btn_stop_vid = QPushButton(tr("tl.btn_stop"))
         self.btn_stop_vid.clicked.connect(self._stop_video)
         self.btn_stop_vid.setEnabled(False)
         toolbar.addWidget(self.btn_stop_vid)
 
         toolbar.addSpacing(20)
-        toolbar.addWidget(QLabel("Time offset (s):", font=mono_font(8)))
+        toolbar.addWidget(QLabel(tr("tl.time_offset"), font=mono_font(8)))
 
         self.spin_offset = QDoubleSpinBox()
         self.spin_offset.setFont(mono_font(8))
         self.spin_offset.setRange(-3600.0, 3600.0)
         self.spin_offset.setSingleStep(0.1)
         self.spin_offset.setDecimals(3)
-        self.spin_offset.setToolTip(
-            "Shift: log_time = video_time + offset\n"
-            "Increase if the video starts before the log."
-        )
+        self.spin_offset.setToolTip(tr("tl.offset_tooltip"))
         self.spin_offset.valueChanged.connect(self._on_offset_changed)
         toolbar.addWidget(self.spin_offset)
 
-        self.lbl_vid_time = QLabel("0.000 s  /  log: —", font=mono_font(8))
+        self.lbl_vid_time = QLabel(tr("tl.vid_time_init"), font=mono_font(8))
         self.lbl_vid_time.setStyleSheet(f"color:{COLORS['green']}")
         toolbar.addWidget(self.lbl_vid_time)
 
@@ -170,9 +168,7 @@ class TimelineTab(QWidget):
 
         # ── Help label ──
         help_lbl = QLabel(
-            "HOW TO SYNC:  1. Load video  2. Play a few seconds  3. Adjust Time Offset "
-            "until the video action matches the CAN spike in SIGNAL VIEW  "
-            "4. Click any spike in SIGNAL VIEW — video jumps to that moment",
+            tr("tl.help_sync"),
             font=mono_font(7)
         )
         help_lbl.setStyleSheet(f"color:{COLORS['dim']}")
@@ -208,7 +204,7 @@ class TimelineTab(QWidget):
         for sig in sigs:
             mid  = sig.get("message_id", "000")
             name = sig.get("signal_name", "?")
-            item = QListWidgetItem(f"0x{mid}  {name}  [decoded]")
+            item = QListWidgetItem(f"0x{mid}  {name}  {tr('tl.decoded_tag')}")
             item.setData(Qt.ItemDataRole.UserRole, ("dbc", mid, name))
             item.setFont(mono_font(8))
             item.setForeground(QColor(COLORS["green"]))
@@ -227,11 +223,11 @@ class TimelineTab(QWidget):
     def _plot_selected(self):
         selected = self.sig_list.selectedItems()[:MAX_ROWS]
         if not selected:
-            self.lbl_status.setText("Select at least one signal.")
+            self.lbl_status.setText(tr("tl.status_select_one"))
             return
         df = self._state.frames_df
         if df.empty:
-            self.lbl_status.setText("No frames loaded.")
+            self.lbl_status.setText(tr("tl.status_no_frames"))
             return
 
         self._clear_plots()
@@ -257,7 +253,7 @@ class TimelineTab(QWidget):
             if row_idx < n - 1:
                 p.hideAxis("bottom")
             else:
-                p.setLabel("bottom", "Time (s)")
+                p.setLabel("bottom", tr("tl.axis_time"))
 
             if row_idx > 0:
                 p.setXLink(self._plots[0])
@@ -276,7 +272,7 @@ class TimelineTab(QWidget):
             p.scene().sigMouseClicked.connect(self._on_click)
 
         self.glw.ci.layout.setSpacing(2)
-        self.lbl_status.setText(f"Plotting {len(self._plots)} signal(s).")
+        self.lbl_status.setText(tr("tl.status_plotting", n=len(self._plots)))
         self.lbl_status.setStyleSheet(f"color:{COLORS['green']}")
 
     def _extract_series(self, df, kind, mid, name):
@@ -330,8 +326,8 @@ class TimelineTab(QWidget):
 
     def _load_video(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Video File", "",
-            "Video Files (*.mp4 *.avi *.mkv *.mov *.webm *.m4v);;All Files (*)"
+            self, tr("tl.open_video"), "",
+            tr("tl.video_file_filter")
         )
         if not path:
             return
@@ -347,22 +343,22 @@ class TimelineTab(QWidget):
         self.btn_play_pause.setEnabled(True)
         self.btn_stop_vid.setEnabled(True)
         self._vid_timer.start()
-        self.lbl_vid_time.setText("0.000 s  — loaded, press Play")
+        self.lbl_vid_time.setText(tr("tl.vid_time_loaded"))
 
     def _toggle_play(self):
         if self._player is None:
             return
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()
-            self.btn_play_pause.setText("▶ Play")
+            self.btn_play_pause.setText(tr("tl.btn_play"))
         else:
             self._player.play()
-            self.btn_play_pause.setText("⏸ Pause")
+            self.btn_play_pause.setText(tr("tl.btn_pause"))
 
     def _stop_video(self):
         if self._player:
             self._player.stop()
-            self.btn_play_pause.setText("▶ Play")
+            self.btn_play_pause.setText(tr("tl.btn_play"))
 
     def _on_duration_changed(self, duration_ms: int):
         self._vid_scrubber.setRange(0, max(duration_ms, 1))
@@ -375,7 +371,7 @@ class TimelineTab(QWidget):
     def _on_scrubber_pressed(self):
         if self._player:
             self._player.pause()
-            self.btn_play_pause.setText("▶ Play")
+            self.btn_play_pause.setText(tr("tl.btn_play"))
 
     def _on_scrubber_released(self):
         if self._player is None:
@@ -403,7 +399,7 @@ class TimelineTab(QWidget):
         vid_sec  = pos_ms / 1000.0
         log_time = self._log_t0 + vid_sec + self._video_offset
         self.lbl_vid_time.setText(
-            f"video: {vid_sec:.3f} s  |  log: {log_time:.3f} s"
+            tr("tl.vid_time", v=vid_sec, l=log_time)
         )
 
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:

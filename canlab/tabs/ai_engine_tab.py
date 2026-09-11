@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 from core.ai_client import AIWorker
 from ui.animations import SpinnerWidget, ButtonPulse, TypewriterCursor, flash_widget
 
@@ -61,13 +62,13 @@ class AIEngineTab(QWidget):
         provider = self._provider
         model    = self._model
         color    = COLORS["green"] if provider == "Groq" else COLORS["amber"]
-        self.lbl_provider_badge.setText(f"AI: {provider} / {model}")
+        self.lbl_provider_badge.setText(tr("ai.provider_badge", provider=provider, model=model))
         self.lbl_provider_badge.setStyleSheet(
             f"color:{color}; background:{COLORS['panel_bg']}; "
             f"border:1px solid {color}; border-radius:3px; padding:1px 4px;"
         )
-        self.btn_analyze.setText(f"Analyze with {provider}")
-        self.lbl_response_header.setText(f"{provider.upper()} RESPONSE")
+        self.btn_analyze.setText(tr("ai.analyze_with", provider=provider))
+        self.lbl_response_header.setText(tr("ai.provider_response", provider=provider.upper()))
 
     def _build_ui(self):
         layout = QHBoxLayout(self)
@@ -83,13 +84,13 @@ class AIEngineTab(QWidget):
         left_lay.setContentsMargins(4, 4, 4, 4)
         left_lay.setSpacing(4)
 
-        self.lbl_repo_badge = QLabel("No repo loaded")
+        self.lbl_repo_badge = QLabel(tr("ai.repo_none"))
         self.lbl_repo_badge.setFont(mono_font(8))
         self.lbl_repo_badge.setObjectName("label_dim")
         self.lbl_repo_badge.setWordWrap(True)
         left_lay.addWidget(self.lbl_repo_badge)
 
-        self.lbl_provider_badge = QLabel("AI: Anthropic / claude-sonnet-4-6")
+        self.lbl_provider_badge = QLabel(tr("ai.provider_default"))
         self.lbl_provider_badge.setFont(mono_font(7))
         self.lbl_provider_badge.setStyleSheet(
             f"color:{COLORS['amber']}; background:{COLORS['panel_bg']}; "
@@ -98,7 +99,7 @@ class AIEngineTab(QWidget):
         self.lbl_provider_badge.setWordWrap(True)
         left_lay.addWidget(self.lbl_provider_badge)
 
-        lbl_q = QLabel("ANALYSIS QUEUE")
+        lbl_q = QLabel(tr("ai.queue_title"))
         lbl_q.setObjectName("label_dim")
         lbl_q.setFont(mono_font(8))
         left_lay.addWidget(lbl_q)
@@ -107,19 +108,19 @@ class AIEngineTab(QWidget):
         self.queue_list.setFont(mono_font())
         left_lay.addWidget(self.queue_list)
 
-        self.btn_add_sel = QPushButton("Add Selected ID")
+        self.btn_add_sel = QPushButton(tr("ai.add_selected"))
         self.btn_add_sel.clicked.connect(self._add_selected)
         left_lay.addWidget(self.btn_add_sel)
 
-        self.btn_add_unk = QPushButton("Add All UNKNOWN")
+        self.btn_add_unk = QPushButton(tr("ai.add_unknown"))
         self.btn_add_unk.clicked.connect(self._add_all_unknown)
         left_lay.addWidget(self.btn_add_unk)
 
-        self.btn_add_all = QPushButton("Add All IDs")
+        self.btn_add_all = QPushButton(tr("ai.add_all"))
         self.btn_add_all.clicked.connect(self._add_all_ids)
         left_lay.addWidget(self.btn_add_all)
 
-        self.btn_run = QPushButton("Run Queue")
+        self.btn_run = QPushButton(tr("ai.run_queue"))
         self.btn_run.setObjectName("btn_amber")
         self.btn_run.clicked.connect(self._run_queue)
         left_lay.addWidget(self.btn_run)
@@ -129,7 +130,7 @@ class AIEngineTab(QWidget):
         left_lay.addWidget(self.queue_progress)
 
         # Memory indicator
-        self.lbl_memory = QLabel("Memory: 0 entries")
+        self.lbl_memory = QLabel(tr("ai.memory_count", n=0))
         self.lbl_memory.setFont(mono_font(8))
         self.lbl_memory.setObjectName("label_dim")
         left_lay.addWidget(self.lbl_memory)
@@ -159,7 +160,7 @@ class AIEngineTab(QWidget):
         ws_lay.setContentsMargins(0, 0, 0, 0)
         ws_lay.setSpacing(4)
 
-        self.lbl_id_header = QLabel("Select an ID to analyze")
+        self.lbl_id_header = QLabel(tr("ai.select_id"))
         self.lbl_id_header.setFont(mono_font(10, bold=True))
         self.lbl_id_header.setObjectName("label_green")
         ws_lay.addWidget(self.lbl_id_header)
@@ -169,10 +170,10 @@ class AIEngineTab(QWidget):
         self.lbl_stats.setFont(mono_font(8))
         ws_lay.addWidget(self.lbl_stats)
 
-        self.repo_grp = QGroupBox("REPO CONTEXT")
+        self.repo_grp = QGroupBox(tr("ai.repo_context"))
         repo_lay = QVBoxLayout(self.repo_grp)
         repo_lay.setContentsMargins(4, 4, 4, 4)
-        self.lbl_repo_info = QLabel("No GitHub repo loaded.")
+        self.lbl_repo_info = QLabel(tr("ai.repo_not_loaded"))
         self.lbl_repo_info.setFont(mono_font(8))
         self.lbl_repo_info.setObjectName("label_dim")
         self.lbl_repo_info.setWordWrap(True)
@@ -185,7 +186,7 @@ class AIEngineTab(QWidget):
         self.raw_preview.setFont(mono_font(8))
         ws_lay.addWidget(self.raw_preview)
 
-        lbl_spark = QLabel("BYTE TIMELINES")
+        lbl_spark = QLabel(tr("ai.byte_timelines"))
         lbl_spark.setObjectName("label_dim")
         lbl_spark.setFont(mono_font(8))
         ws_lay.addWidget(lbl_spark)
@@ -198,7 +199,7 @@ class AIEngineTab(QWidget):
         self.sparkline_widget.hideAxis("bottom")
         ws_lay.addWidget(self.sparkline_widget)
 
-        lbl_ctx = QLabel("CONTEXT")
+        lbl_ctx = QLabel(tr("ai.context"))
         lbl_ctx.setObjectName("label_dim")
         lbl_ctx.setFont(mono_font(8))
         ws_lay.addWidget(lbl_ctx)
@@ -209,7 +210,7 @@ class AIEngineTab(QWidget):
         ws_lay.addWidget(self.context_input)
 
         analyze_row = QHBoxLayout()
-        self.btn_analyze = QPushButton("Analyze with AI")
+        self.btn_analyze = QPushButton(tr("ai.analyze_with", provider="AI"))
         self.btn_analyze.setObjectName("btn_amber")
         self.btn_analyze.clicked.connect(self._run_analysis)
         analyze_row.addWidget(self.btn_analyze, stretch=1)
@@ -231,7 +232,7 @@ class AIEngineTab(QWidget):
         resp_lay.setContentsMargins(0, 4, 0, 4)
         resp_lay.setSpacing(4)
 
-        self.lbl_response_header = QLabel("AI RESPONSE")
+        self.lbl_response_header = QLabel(tr("ai.response"))
         self.lbl_response_header.setObjectName("label_dim")
         self.lbl_response_header.setFont(mono_font(8))
         resp_lay.addWidget(self.lbl_response_header)
@@ -246,10 +247,10 @@ class AIEngineTab(QWidget):
         resp_lay.addWidget(self.response_text)
 
         btn_row = QHBoxLayout()
-        self.btn_accept_dbc  = QPushButton("Accept → DBC")
-        self.btn_accept_name = QPushButton("Accept → Name")
-        self.btn_reanalyze   = QPushButton("Re-analyze")
-        self.btn_save_memory = QPushButton("Save to Memory")
+        self.btn_accept_dbc  = QPushButton(tr("ai.accept_dbc"))
+        self.btn_accept_name = QPushButton(tr("ai.accept_name"))
+        self.btn_reanalyze   = QPushButton(tr("ai.reanalyze"))
+        self.btn_save_memory = QPushButton(tr("ai.save_memory"))
         for b in [self.btn_accept_dbc, self.btn_accept_name,
                   self.btn_reanalyze, self.btn_save_memory]:
             b.setEnabled(False)
@@ -264,7 +265,7 @@ class AIEngineTab(QWidget):
         right_splitter.addWidget(response_widget)
         right_splitter.setSizes([320, 380])
         aw_lay.addWidget(right_splitter)
-        tabs.addTab(analysis_widget, "SINGLE ID")
+        tabs.addTab(analysis_widget, tr("ai.tab_single"))
 
         # ── Tab 2: Natural Language Query ──────────────────────────────────
         nl_widget = QWidget()
@@ -272,22 +273,22 @@ class AIEngineTab(QWidget):
         nl_lay.setContentsMargins(8, 8, 8, 8)
         nl_lay.setSpacing(6)
 
-        nl_lay.addWidget(QLabel("Ask a question about the CAN data:", font=mono_font(9)))
+        nl_lay.addWidget(QLabel(tr("ai.ask_question"), font=mono_font(9)))
 
         self.nl_input = QLineEdit()
         self.nl_input.setFont(mono_font())
         self.nl_input.setPlaceholderText(
-            "e.g. What signal fires when brake is pressed?"
+            tr("ai.nl_placeholder")
         )
         self.nl_input.returnPressed.connect(self._run_nl_query)
         nl_lay.addWidget(self.nl_input)
 
-        self.btn_nl_ask = QPushButton("Ask Claude")
+        self.btn_nl_ask = QPushButton(tr("ai.btn_ask"))
         self.btn_nl_ask.setObjectName("btn_amber")
         self.btn_nl_ask.clicked.connect(self._run_nl_query)
         nl_lay.addWidget(self.btn_nl_ask)
 
-        nl_lay.addWidget(QLabel("RESPONSE:", font=mono_font(8)))
+        nl_lay.addWidget(QLabel(tr("ai.nl_response_label"), font=mono_font(8)))
         self.nl_response = QTextEdit()
         self.nl_response.setReadOnly(True)
         self.nl_response.setFont(mono_font())
@@ -296,7 +297,7 @@ class AIEngineTab(QWidget):
             f"border:1px solid {COLORS['border']}; }}"
         )
         nl_lay.addWidget(self.nl_response)
-        tabs.addTab(nl_widget, "NL QUERY")
+        tabs.addTab(nl_widget, tr("ai.tab_nl"))
 
         # ── Tab 3: Memory Viewer ───────────────────────────────────────────
         mem_widget = QWidget()
@@ -305,9 +306,9 @@ class AIEngineTab(QWidget):
         mem_lay.setSpacing(6)
 
         mem_hdr = QHBoxLayout()
-        mem_hdr.addWidget(QLabel("ANALYSIS MEMORY", font=mono_font(9)))
+        mem_hdr.addWidget(QLabel(tr("ai.memory_title"), font=mono_font(9)))
         mem_hdr.addStretch()
-        btn_clear_mem = QPushButton("Clear Memory")
+        btn_clear_mem = QPushButton(tr("ai.clear_memory"))
         btn_clear_mem.clicked.connect(self._clear_memory)
         mem_hdr.addWidget(btn_clear_mem)
         mem_lay.addLayout(mem_hdr)
@@ -317,7 +318,7 @@ class AIEngineTab(QWidget):
         self.memory_text.setFont(mono_font(8))
         mem_lay.addWidget(self.memory_text)
         self._refresh_memory_view()
-        tabs.addTab(mem_widget, "MEMORY")
+        tabs.addTab(mem_widget, tr("ai.tab_memory"))
 
         right_lay.addWidget(tabs)
         splitter.addWidget(right)
@@ -331,14 +332,15 @@ class AIEngineTab(QWidget):
         repo  = info.get("repo", "")
         desc  = info.get("description", "")
         name  = f"{owner}/{repo}" if owner else repo
-        self.lbl_repo_badge.setText(f"REPO: {name}")
+        self.lbl_repo_badge.setText(tr("ai.repo_badge", name=name))
         self.lbl_repo_badge.setStyleSheet(f"color:{COLORS['green']}")
         readme = self._state.repo_readme
         from core.event_correlator import parse_annotations
         n_events = len(parse_annotations(readme))
         self.lbl_repo_info.setText(
-            f"{name}  —  {desc}\n"
-            f"README: {'yes' if readme else 'no'}  |  Events: {n_events}"
+            tr("ai.repo_info",
+               name=name, desc=desc,
+               readme=("yes" if readme else "no"), n_events=n_events)
         )
         self.lbl_repo_info.setStyleSheet(f"color:{COLORS['green']}")
 
@@ -347,7 +349,7 @@ class AIEngineTab(QWidget):
     def queue_id(self, hex_id: str):
         if not any(self.queue_list.item(i).text().startswith(hex_id)
                    for i in range(self.queue_list.count())):
-            item = QListWidgetItem(f"{hex_id}  [waiting]")
+            item = QListWidgetItem(f"{hex_id}  [{tr('ai.q_waiting')}]")
             item.setData(Qt.ItemDataRole.UserRole, hex_id)
             item.setForeground(QBrush(QColor(COLORS["dim"])))
             self.queue_list.addItem(item)
@@ -397,19 +399,20 @@ class AIEngineTab(QWidget):
             self._load_id_impl(hex_id)
         except Exception as e:
             self._current_id = hex_id
-            self.lbl_id_header.setText(f"0x{hex_id}  — load error: {e}")
+            self.lbl_id_header.setText(tr("ai.load_error", hex_id=hex_id, err=e))
 
     def _load_id_impl(self, hex_id: str):
         self._current_id = hex_id
         frames = self._state.get_frames_for_id(hex_id)
-        self.lbl_id_header.setText(f"0x{hex_id}  —  {len(frames)} frames")
+        self.lbl_id_header.setText(tr("ai.id_frames", hex_id=hex_id, n=len(frames)))
         if frames.empty:
             return
         total_time = frames["Timestamp"].iloc[-1] - frames["Timestamp"].iloc[0]
         freq = len(frames) / total_time if total_time > 0 else 0
         self.lbl_stats.setText(
-            f"Freq: {freq:.1f}Hz  |  Span: {total_time:.1f}s  |  "
-            f"Bus: {frames['Bus'].iloc[0] if 'Bus' in frames else '?'}"
+            tr("ai.id_stats",
+               freq=freq, span=total_time,
+               bus=frames['Bus'].iloc[0] if 'Bus' in frames else '?')
         )
         last20 = frames.tail(20)
         lines  = []
@@ -536,7 +539,7 @@ class AIEngineTab(QWidget):
         # Ollama is a local server — no API key required.
         if self._provider != "Ollama" and not active_key:
             self.response_text.setPlainText(
-                f"ERROR: No {self._provider} API key configured.\nGo to Settings > API Keys."
+                tr("ai.no_api_key", provider=self._provider)
             )
             if from_queue:
                 self._advance_queue(self._current_id)
@@ -655,14 +658,14 @@ class AIEngineTab(QWidget):
 
     def _refresh_memory_label(self):
         n = len(self._state.ai_memory)
-        self.lbl_memory.setText(f"Memory: {n} entries")
+        self.lbl_memory.setText(tr("ai.memory_count", n=n))
 
     def _refresh_memory_view(self):
         if not hasattr(self, "memory_text"):
             return
         entries = self._state.ai_memory
         if not entries:
-            self.memory_text.setPlainText("No memories stored.")
+            self.memory_text.setPlainText(tr("ai.no_memory"))
             return
         lines = []
         for e in reversed(entries):
@@ -682,12 +685,12 @@ class AIEngineTab(QWidget):
         active_key = self._groq_key if self._provider == "Groq" else self._api_key
         if self._provider != "Ollama" and not active_key:
             self.nl_response.setPlainText(
-                f"ERROR: No {self._provider} API key configured."
+                tr("ai.no_api_key", provider=self._provider)
             )
             return
 
         provider_label = self._provider
-        self.nl_response.setPlainText(f"Asking {provider_label}…")
+        self.nl_response.setPlainText(tr("ai.asking", provider=provider_label))
         self.btn_nl_ask.setEnabled(False)
 
         # Build a synthetic "frame" showing unique IDs + their analysis + memory
@@ -752,10 +755,16 @@ class AIEngineTab(QWidget):
             "done":      COLORS["green"],
             "error":     COLORS["error"],
         }
+        status_text = {
+            "waiting":   tr("ai.q_waiting"),
+            "analyzing": tr("ai.q_analyzing"),
+            "done":      tr("ai.q_done"),
+            "error":     tr("ai.q_error"),
+        }.get(status, status)
         for i in range(self.queue_list.count()):
             item = self.queue_list.item(i)
             if item.data(Qt.ItemDataRole.UserRole) == hex_id:
-                item.setText(f"{hex_id}  [{status}]")
+                item.setText(f"{hex_id}  [{status_text}]")
                 item.setForeground(QBrush(QColor(colors.get(status, COLORS["text"]))))
                 return
 

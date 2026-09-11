@@ -7,6 +7,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 import pandas as pd
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 
 class IDPanel(QWidget):
@@ -33,7 +34,7 @@ class IDPanel(QWidget):
         src_lay = QVBoxLayout(src_widget)
         src_lay.setContentsMargins(4, 4, 4, 4)
         src_lay.setSpacing(2)
-        lbl_src = QLabel("LOADED SOURCES")
+        lbl_src = QLabel(tr("idpanel.sources"))
         lbl_src.setObjectName("label_dim")
         lbl_src.setFont(mono_font(8))
         src_lay.addWidget(lbl_src)
@@ -47,7 +48,7 @@ class IDPanel(QWidget):
         id_lay = QVBoxLayout(id_widget)
         id_lay.setContentsMargins(4, 4, 4, 4)
         id_lay.setSpacing(2)
-        lbl_id = QLabel("CAN ID LIST")
+        lbl_id = QLabel(tr("idpanel.id_list"))
         lbl_id.setObjectName("label_dim")
         lbl_id.setFont(mono_font(8))
         id_lay.addWidget(lbl_id)
@@ -140,11 +141,11 @@ class IDPanel(QWidget):
             return
 
         menu = QMenu(self)
-        menu.addAction("Analyze with AI",   lambda: self.analyze_requested.emit(can_id))
-        menu.addAction("Plot Signal",        lambda: self.plot_requested.emit(can_id))
-        menu.addAction("Select ID",          lambda: self._state.select_id(can_id))
+        menu.addAction(tr("idpanel.menu_analyze"), lambda: self.analyze_requested.emit(can_id))
+        menu.addAction(tr("idpanel.menu_plot"),    lambda: self.plot_requested.emit(can_id))
+        menu.addAction(tr("idpanel.menu_select"),  lambda: self._state.select_id(can_id))
         menu.addSeparator()
-        menu.addAction("Copy ID",            lambda: self._copy_id(can_id))
+        menu.addAction(tr("idpanel.menu_copy"),    lambda: self._copy_id(can_id))
         menu.exec(self.id_tree.mapToGlobal(pos))
 
     def _copy_id(self, can_id: str):

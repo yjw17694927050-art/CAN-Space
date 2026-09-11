@@ -9,6 +9,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 
 STATUS_COLORS = {
@@ -44,9 +45,9 @@ class IntelligenceTab(QWidget):
         ll.setSpacing(6)
 
         # Fingerprint
-        fp_grp = QGroupBox("VEHICLE FINGERPRINT")
+        fp_grp = QGroupBox(tr("intel.fingerprint"))
         fp_lay = QVBoxLayout(fp_grp)
-        self.btn_fingerprint = QPushButton("Run Fingerprint")
+        self.btn_fingerprint = QPushButton(tr("intel.run_fingerprint"))
         self.btn_fingerprint.clicked.connect(self._run_fingerprint)
         fp_lay.addWidget(self.btn_fingerprint)
         self.lbl_fingerprint = QLabel("—")
@@ -56,17 +57,17 @@ class IntelligenceTab(QWidget):
         ll.addWidget(fp_grp)
 
         # Periodicity
-        per_grp = QGroupBox("SIGNAL PERIODICITY")
+        per_grp = QGroupBox(tr("intel.periodicity"))
         per_lay = QVBoxLayout(per_grp)
-        self.btn_period = QPushButton("Compute Periodicities")
+        self.btn_period = QPushButton(tr("intel.compute_periods"))
         self.btn_period.clicked.connect(self._compute_periodicity)
         per_lay.addWidget(self.btn_period)
         ll.addWidget(per_grp)
 
         # Auto DBC
-        dbc_grp = QGroupBox("AUTO DBC GENERATION")
+        dbc_grp = QGroupBox(tr("intel.auto_dbc"))
         dbc_lay = QVBoxLayout(dbc_grp)
-        self.btn_auto_dbc = QPushButton("Auto-Build DBC")
+        self.btn_auto_dbc = QPushButton(tr("intel.auto_build_dbc"))
         self.btn_auto_dbc.setObjectName("btn_green")
         self.btn_auto_dbc.clicked.connect(self._auto_build_dbc)
         dbc_lay.addWidget(self.btn_auto_dbc)
@@ -77,13 +78,13 @@ class IntelligenceTab(QWidget):
         ll.addWidget(dbc_grp)
 
         # Diff
-        diff_grp = QGroupBox("LOG DIFF")
+        diff_grp = QGroupBox(tr("intel.log_diff"))
         diff_lay = QVBoxLayout(diff_grp)
-        self.btn_set_baseline = QPushButton("Set Current as Baseline")
+        self.btn_set_baseline = QPushButton(tr("intel.set_baseline"))
         self.btn_set_baseline.clicked.connect(self._set_baseline)
-        self.btn_run_diff     = QPushButton("Load & Compare Log…")
+        self.btn_run_diff     = QPushButton(tr("intel.load_compare"))
         self.btn_run_diff.clicked.connect(self._run_diff)
-        self.lbl_baseline = QLabel("Baseline: none")
+        self.lbl_baseline = QLabel(tr("intel.baseline_none"))
         self.lbl_baseline.setFont(mono_font(8))
         self.lbl_baseline.setObjectName("label_dim")
         diff_lay.addWidget(self.lbl_baseline)
@@ -92,24 +93,24 @@ class IntelligenceTab(QWidget):
         ll.addWidget(diff_grp)
 
         # opendbc cross-ref
-        ref_grp = QGroupBox("opendbc CROSS-REF")
+        ref_grp = QGroupBox(tr("intel.xref"))
         ref_lay = QVBoxLayout(ref_grp)
-        self.btn_xref = QPushButton("Cross-Reference Signals")
+        self.btn_xref = QPushButton(tr("intel.xref_signals"))
         self.btn_xref.clicked.connect(self._run_xref)
         ref_lay.addWidget(self.btn_xref)
         ll.addWidget(ref_grp)
 
         # Change-on-Action
-        coa_grp = QGroupBox("CHANGE-ON-ACTION")
+        coa_grp = QGroupBox(tr("intel.change_on_action"))
         coa_lay = QVBoxLayout(coa_grp)
-        self.btn_coa_baseline = QPushButton("① Capture Baseline")
+        self.btn_coa_baseline = QPushButton(tr("intel.coa_baseline"))
         self.btn_coa_baseline.clicked.connect(self._coa_capture_baseline)
-        self.btn_coa_action   = QPushButton("② Capture After Action")
+        self.btn_coa_action   = QPushButton(tr("intel.coa_action"))
         self.btn_coa_action.clicked.connect(self._coa_capture_action)
-        self.btn_coa_compute  = QPushButton("③ Show Delta")
+        self.btn_coa_compute  = QPushButton(tr("intel.coa_delta"))
         self.btn_coa_compute.setObjectName("btn_green")
         self.btn_coa_compute.clicked.connect(self._coa_compute)
-        self.btn_coa_clear    = QPushButton("Clear")
+        self.btn_coa_clear    = QPushButton(tr("intel.clear"))
         self.btn_coa_clear.clicked.connect(self._coa_clear)
         self.lbl_coa_status = QLabel("—")
         self.lbl_coa_status.setFont(mono_font(8))
@@ -121,11 +122,11 @@ class IntelligenceTab(QWidget):
         ll.addWidget(coa_grp)
 
         # Community Profiles
-        comm_grp = QGroupBox("COMMUNITY PROFILES")
+        comm_grp = QGroupBox(tr("intel.community"))
         comm_lay = QVBoxLayout(comm_grp)
-        self.btn_comm_fetch   = QPushButton("Fetch Profiles…")
+        self.btn_comm_fetch   = QPushButton(tr("intel.fetch_profiles"))
         self.btn_comm_fetch.clicked.connect(self._comm_fetch)
-        self.btn_comm_apply   = QPushButton("Apply Selected")
+        self.btn_comm_apply   = QPushButton(tr("intel.apply_selected"))
         self.btn_comm_apply.clicked.connect(self._comm_apply)
         self.lbl_comm_status  = QLabel("—")
         self.lbl_comm_status.setFont(mono_font(8))
@@ -136,9 +137,9 @@ class IntelligenceTab(QWidget):
         ll.addWidget(comm_grp)
 
         # J1939 Decoder
-        j1939_grp = QGroupBox("J1939 PGN DECODER")
+        j1939_grp = QGroupBox(tr("intel.j1939"))
         j1939_lay = QVBoxLayout(j1939_grp)
-        self.btn_j1939 = QPushButton("Scan for J1939 IDs")
+        self.btn_j1939 = QPushButton(tr("intel.scan_j1939"))
         self.btn_j1939.clicked.connect(self._run_j1939)
         j1939_lay.addWidget(self.btn_j1939)
         self.lbl_j1939 = QLabel("—")
@@ -147,11 +148,11 @@ class IntelligenceTab(QWidget):
         ll.addWidget(j1939_grp)
 
         # Value Reverse Lookup
-        vr_grp = QGroupBox("VALUE REVERSE LOOKUP")
+        vr_grp = QGroupBox(tr("intel.value_reverse"))
         vr_lay = QVBoxLayout(vr_grp)
         from PyQt6.QtWidgets import QDoubleSpinBox
         vr_row = QHBoxLayout()
-        vr_row.addWidget(QLabel("Target:", font=mono_font(8)))
+        vr_row.addWidget(QLabel(tr("intel.target"), font=mono_font(8)))
         self.vr_target = QDoubleSpinBox()
         self.vr_target.setRange(-100000, 100000)
         self.vr_target.setValue(0.0)
@@ -164,7 +165,7 @@ class IntelligenceTab(QWidget):
         self.vr_tol.setDecimals(3)
         vr_row.addWidget(self.vr_tol)
         vr_lay.addLayout(vr_row)
-        self.btn_vr = QPushButton("Find Signal")
+        self.btn_vr = QPushButton(tr("intel.find_signal"))
         self.btn_vr.setObjectName("btn_green")
         self.btn_vr.clicked.connect(self._run_value_reverse)
         vr_lay.addWidget(self.btn_vr)
@@ -191,7 +192,7 @@ class IntelligenceTab(QWidget):
         self.period_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.period_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.period_table.setMaximumHeight(200)
-        rl.addWidget(QLabel("PERIODICITIES", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.periodicities"), font=mono_font(8)))
         rl.addWidget(self.period_table)
 
         # Diff table
@@ -202,7 +203,7 @@ class IntelligenceTab(QWidget):
         self.diff_table.verticalHeader().setDefaultSectionSize(20)
         self.diff_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.diff_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        rl.addWidget(QLabel("LOG DIFF RESULTS", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.diff_results"), font=mono_font(8)))
         rl.addWidget(self.diff_table)
 
         # Cross-ref output
@@ -210,7 +211,7 @@ class IntelligenceTab(QWidget):
         self.xref_text.setReadOnly(True)
         self.xref_text.setFont(mono_font(8))
         self.xref_text.setMaximumHeight(160)
-        rl.addWidget(QLabel("opendbc MATCHES", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.xref_matches"), font=mono_font(8)))
         rl.addWidget(self.xref_text)
 
         splitter.addWidget(right)
@@ -225,7 +226,7 @@ class IntelligenceTab(QWidget):
         self.delta_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.delta_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.delta_table.setMaximumHeight(180)
-        rl.addWidget(QLabel("CHANGE DELTA", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.change_delta"), font=mono_font(8)))
         rl.addWidget(self.delta_table)
 
         # Community profiles list
@@ -237,7 +238,7 @@ class IntelligenceTab(QWidget):
         self.comm_list.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.comm_list.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.comm_list.setMaximumHeight(140)
-        rl.addWidget(QLabel("COMMUNITY PROFILES", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.community"), font=mono_font(8)))
         rl.addWidget(self.comm_list)
 
         # J1939 table
@@ -251,7 +252,7 @@ class IntelligenceTab(QWidget):
         self.j1939_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.j1939_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.j1939_table.setMaximumHeight(160)
-        rl.addWidget(QLabel("J1939 PGN SCAN RESULTS", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.j1939_results"), font=mono_font(8)))
         rl.addWidget(self.j1939_table)
 
         # Value Reverse table
@@ -265,7 +266,7 @@ class IntelligenceTab(QWidget):
         self.vr_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.vr_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.vr_table.setMaximumHeight(160)
-        rl.addWidget(QLabel("VALUE REVERSE LOOKUP RESULTS", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("intel.vr_results"), font=mono_font(8)))
         rl.addWidget(self.vr_table)
 
         splitter.setSizes([240, 760])
@@ -278,7 +279,7 @@ class IntelligenceTab(QWidget):
         from core.fingerprint import fingerprint_vehicle
         ids = set(self._state.get_unique_ids())
         if not ids:
-            self.lbl_fingerprint.setText("No frames loaded.")
+            self.lbl_fingerprint.setText(tr("intel.no_frames"))
             return
         # Build DLC map from frames
         df = self._state.frames_df
@@ -298,13 +299,13 @@ class IntelligenceTab(QWidget):
         )
         self.lbl_fingerprint.setText(
             f"{result['model']}\n"
-            f"Confidence: {conf_pct}%  [{quality}]\n"
-            f"ID: {detail.get('id_coverage',0):.0%}  "
-            f"Period: {detail.get('period',0):.0%}  "
+            f"{tr('intel.confidence')}: {conf_pct}%  [{quality}]\n"
+            f"{tr('intel.id')}: {detail.get('id_coverage',0):.0%}  "
+            f"{tr('intel.period')}: {detail.get('period',0):.0%}  "
             f"DLC: {detail.get('dlc',0):.0%}\n"
-            f"Matched: {', '.join(result['matched_ids'])}\n"
-            f"Missing: {', '.join(result['missing_ids']) or 'none'}\n"
-            f"Top 3:\n{top3_txt}"
+            f"{tr('intel.matched')}: {', '.join(result['matched_ids'])}\n"
+            f"{tr('intel.missing')}: {', '.join(result['missing_ids']) or tr('intel.none')}\n"
+            f"{tr('intel.top3')}:\n{top3_txt}"
         )
         self.lbl_fingerprint.setStyleSheet(f"color:{color}")
         self._state.fingerprint_matched.emit(result)
@@ -333,7 +334,7 @@ class IntelligenceTab(QWidget):
     def _auto_build_dbc(self):
         from core.auto_dbc import build_from_analyzer
         if self._state.frames_df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("intel.no_data"), tr("intel.load_can_log"))
             return
         signals = build_from_analyzer(self._state)
         added = 0
@@ -342,35 +343,35 @@ class IntelligenceTab(QWidget):
             if sig["message_id"] not in existing_ids:
                 self._state.add_dbc_signal(sig)
                 added += 1
-        self.lbl_auto_dbc.setText(f"Added {added} signals to DBC Builder.")
+        self.lbl_auto_dbc.setText(tr("intel.added_dbc", n=added))
         self.lbl_auto_dbc.setStyleSheet(f"color:{COLORS['green']}")
 
     # ── Diff ──────────────────────────────────────────────────────────────────
 
     def _set_baseline(self):
         if self._state.frames_df.empty:
-            self.lbl_baseline.setText("Baseline: (no data)")
+            self.lbl_baseline.setText(tr("intel.baseline_no_data"))
             return
         self._state.diff_baseline_df = self._state.frames_df.copy()
         n = len(self._state.diff_baseline_df)
-        self.lbl_baseline.setText(f"Baseline: {n} frames")
+        self.lbl_baseline.setText(tr("intel.baseline_frames", n=n))
         self.lbl_baseline.setStyleSheet(f"color:{COLORS['amber']}")
 
     def _run_diff(self):
         from core.diff_engine import diff_logs
         from core.log_parser import parse_log_file
         if self._state.diff_baseline_df.empty:
-            QMessageBox.information(self, "No Baseline", "Set a baseline first.")
+            QMessageBox.information(self, tr("intel.no_baseline"), tr("intel.set_baseline_first"))
             return
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Comparison Log", "", "Log Files (*.csv *.log);;All (*)"
+            self, tr("intel.open_compare"), "", tr("intel.filter_logs") + ";;All (*)"
         )
         if not path:
             return
         try:
             comp_df = parse_log_file(path)
         except Exception as e:
-            QMessageBox.critical(self, "Parse Error", str(e))
+            QMessageBox.critical(self, tr("intel.parse_error"), str(e))
             return
         results = diff_logs(self._state.diff_baseline_df, comp_df)
         self._populate_diff_table(results)
@@ -399,7 +400,7 @@ class IntelligenceTab(QWidget):
     def _run_xref(self):
         from core.opendbc_matcher import scan
         if not self._state.dbc_signals:
-            self.xref_text.setPlainText("No signals in DBC Builder yet.")
+            self.xref_text.setPlainText(tr("intel.no_dbc_signals"))
             return
         repo_ctx = None
         if self._state.repo_info:
@@ -407,7 +408,7 @@ class IntelligenceTab(QWidget):
         matches = scan(self._state, repo_ctx)
         self._state.opendbc_matches = matches
         if not matches:
-            self.xref_text.setPlainText("No matches found against opendbc index.")
+            self.xref_text.setPlainText(tr("intel.no_xref_matches"))
             return
         lines = []
         for sname, info in matches.items():
@@ -430,10 +431,10 @@ class IntelligenceTab(QWidget):
     def _coa_capture_baseline(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load frames first.")
+            QMessageBox.information(self, tr("intel.no_data"), tr("intel.load_frames"))
             return
         self._get_recorder().capture_baseline(df)
-        self.lbl_coa_status.setText(f"Baseline captured  ({len(df)} frames)")
+        self.lbl_coa_status.setText(tr("intel.baseline_captured", n=len(df)))
         self.lbl_coa_status.setStyleSheet(f"color:{COLORS['amber']}")
 
     def _coa_capture_action(self):
@@ -441,14 +442,14 @@ class IntelligenceTab(QWidget):
         if df.empty:
             return
         self._get_recorder().capture_action(df)
-        self.lbl_coa_status.setText(f"Action captured  ({len(df)} frames)")
+        self.lbl_coa_status.setText(tr("intel.action_captured", n=len(df)))
         self.lbl_coa_status.setStyleSheet(f"color:{COLORS['amber']}")
 
     def _coa_compute(self):
         deltas = self._get_recorder().compute_delta()
         if not deltas:
-            QMessageBox.information(self, "No Deltas",
-                                    "Capture both baseline and action first.")
+            QMessageBox.information(self, tr("intel.no_deltas"),
+                                    tr("intel.capture_both"))
             return
         self.delta_table.setRowCount(len(deltas))
         for row, d in enumerate(deltas):
@@ -477,7 +478,7 @@ class IntelligenceTab(QWidget):
                 color = dir_color if ci == 4 else COLORS["amber"]
                 item.setForeground(QBrush(QColor(color)))
                 self.delta_table.setItem(row, ci, item)
-        self.lbl_coa_status.setText(f"{len(deltas)} byte changes detected")
+        self.lbl_coa_status.setText(tr("intel.changes_detected", n=len(deltas)))
         self.lbl_coa_status.setStyleSheet(f"color:{COLORS['green']}")
         self._state.change_detected.emit(deltas)
 
@@ -494,13 +495,13 @@ class IntelligenceTab(QWidget):
         from core.community_sync import CommunitySyncWorker
         url = getattr(self._state, "community_profiles_url", "")
         if not url:
-            QMessageBox.information(self, "No URL",
-                "Set a Community Profiles URL in Settings → GITHUB.")
+            QMessageBox.information(self, tr("intel.no_url"),
+                tr("intel.set_profile_url"))
             return
         self._comm_worker = CommunitySyncWorker(url)
         self._comm_worker.profiles_ready.connect(self._on_profiles_ready)
         self._comm_worker.error.connect(
-            lambda e: self.lbl_comm_status.setText(f"Error: {e}")
+            lambda e: self.lbl_comm_status.setText(tr("intel.error", e=e))
         )
         self._comm_worker.progress.connect(self.lbl_comm_status.setText)
         self._comm_worker.start()
@@ -518,34 +519,34 @@ class IntelligenceTab(QWidget):
                 item = QTableWidgetItem(txt)
                 item.setFont(mono_font())
                 self.comm_list.setItem(row, ci, item)
-        self.lbl_comm_status.setText(f"{len(profiles)} profile(s) loaded")
+        self.lbl_comm_status.setText(tr("intel.profiles_loaded", n=len(profiles)))
         self.lbl_comm_status.setStyleSheet(f"color:{COLORS['green']}")
 
     def _comm_apply(self):
         row = self.comm_list.currentRow()
         if row < 0 or row >= len(self._state.community_profiles):
-            QMessageBox.information(self, "No Selection",
-                                    "Select a profile row first.")
+            QMessageBox.information(self, tr("intel.no_selection"),
+                                    tr("intel.select_profile"))
             return
         profile = self._state.community_profiles[row]
         from core.community_sync import CommunitySyncWorker
         added = CommunitySyncWorker.apply_profile(self._state, profile)
-        QMessageBox.information(self, "Applied",
-            f"Profile '{profile.get('vehicle','?')}' applied — {added} signals added.")
+        QMessageBox.information(self, tr("intel.applied"),
+            tr("intel.profile_applied", vehicle=profile.get('vehicle','?'), n=added))
 
     # ── J1939 ─────────────────────────────────────────────────────────────────
 
     def _run_j1939(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load frames first.")
+            QMessageBox.information(self, tr("intel.no_data"), tr("intel.load_frames"))
             return
         from core.j1939 import scan_for_j1939, decode_pgn
         hits = scan_for_j1939(df)
         if not hits:
-            self.lbl_j1939.setText("No J1939 IDs detected (all IDs are ≤ 0x7FF).")
+            self.lbl_j1939.setText(tr("intel.no_j1939"))
             return
-        self.lbl_j1939.setText(f"{len(hits)} J1939 PGN(s) found.")
+        self.lbl_j1939.setText(tr("intel.j1939_found", n=len(hits)))
 
         # Populate right-panel J1939 table
         self.j1939_table.setRowCount(0)
@@ -583,7 +584,7 @@ class IntelligenceTab(QWidget):
     def _run_value_reverse(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load frames first.")
+            QMessageBox.information(self, tr("intel.no_data"), tr("intel.load_frames"))
             return
         target = self.vr_target.value()
         tol    = self.vr_tol.value()
@@ -591,9 +592,9 @@ class IntelligenceTab(QWidget):
         candidates = find_signal_for_value(df, target, tol)
         self.vr_table.setRowCount(0)
         if not candidates:
-            self.lbl_vr.setText(f"No candidates found for target={target} ±{tol}.")
+            self.lbl_vr.setText(tr("intel.vr_no_candidates", target=target, tol=tol))
             return
-        self.lbl_vr.setText(f"{len(candidates)} candidate(s) for target={target} ±{tol}.")
+        self.lbl_vr.setText(tr("intel.vr_candidates", n=len(candidates), target=target, tol=tol))
         for cand in candidates:
             r = self.vr_table.rowCount()
             self.vr_table.insertRow(r)

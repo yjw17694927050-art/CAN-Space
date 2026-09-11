@@ -19,6 +19,7 @@ from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
+from core.i18n import tr
 
 
 class AutoRETab(QWidget):
@@ -32,10 +33,10 @@ class AutoRETab(QWidget):
         outer = QHBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         tabs = QTabWidget()
-        tabs.addTab(self._build_ctr_chk_tab(),    "COUNTER/CHECKSUM")
-        tabs.addTab(self._build_entropy_tab(),     "ENTROPY BOUNDARIES")
-        tabs.addTab(self._build_correlation_tab(), "CORRELATION")
-        tabs.addTab(self._build_guesser_tab(),     "CHECKSUM GUESSER")
+        tabs.addTab(self._build_ctr_chk_tab(),    tr("autore.tab.ctr_chk"))
+        tabs.addTab(self._build_entropy_tab(),     tr("autore.tab.entropy"))
+        tabs.addTab(self._build_correlation_tab(), tr("autore.tab.correlation"))
+        tabs.addTab(self._build_guesser_tab(),     tr("autore.tab.guesser"))
         outer.addWidget(tabs)
 
     # ── 1. Counter / Checksum Detector ────────────────────────────────────────
@@ -48,12 +49,11 @@ class AutoRETab(QWidget):
 
         hdr = QHBoxLayout()
         hdr.addWidget(QLabel(
-            "Automatically detect counter bytes (rolling +1 pattern) and "
-            "checksum bytes (reproducible from other bytes).",
+            tr("autore.ctr.desc"),
             font=mono_font(8),
         ))
         hdr.addStretch()
-        self.btn_run_ctr = QPushButton("Run Detection")
+        self.btn_run_ctr = QPushButton(tr("autore.ctr.run"))
         self.btn_run_ctr.setObjectName("btn_green")
         self.btn_run_ctr.clicked.connect(self._run_counter_checksum)
         hdr.addWidget(self.btn_run_ctr)
@@ -61,7 +61,9 @@ class AutoRETab(QWidget):
 
         self.ctr_table = QTableWidget(0, 6)
         self.ctr_table.setHorizontalHeaderLabels([
-            "ID", "Byte", "Type", "Algorithm / Wrap", "Confidence", "Notes"
+            tr("autore.ctr.col_id"), tr("autore.ctr.col_byte"),
+            tr("autore.ctr.col_type"), tr("autore.ctr.col_alg"),
+            tr("autore.ctr.col_conf"), tr("autore.ctr.col_notes"),
         ])
         self.ctr_table.setFont(mono_font())
         self.ctr_table.verticalHeader().setVisible(False)
@@ -70,7 +72,7 @@ class AutoRETab(QWidget):
         self.ctr_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         lay.addWidget(self.ctr_table)
 
-        self.lbl_ctr_status = QLabel("Load frames, then click Run Detection.")
+        self.lbl_ctr_status = QLabel(tr("autore.ctr.status_idle"))
         self.lbl_ctr_status.setFont(mono_font(8))
         self.lbl_ctr_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_ctr_status)
@@ -79,10 +81,10 @@ class AutoRETab(QWidget):
     def _run_counter_checksum(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
             return
         self.btn_run_ctr.setEnabled(False)
-        self.lbl_ctr_status.setText("Analysing…")
+        self.lbl_ctr_status.setText(tr("autore.ctr.analysing"))
 
         # Run the (heavy, iterrows-based) detection off the GUI thread so the
         # window stays responsive and the "Analysing…" label can repaint.
@@ -123,8 +125,7 @@ class AutoRETab(QWidget):
         n_ctr = sum(len(v["counters"])  for v in results.values())
         n_chk = sum(len(v["checksums"]) for v in results.values())
         self.lbl_ctr_status.setText(
-            f"Found {n_ctr} counter byte(s) and {n_chk} checksum byte(s) "
-            f"across {len(results)} message(s)."
+            tr("autore.ctr.found", n_ctr=n_ctr, n_chk=n_chk, n_msg=len(results))
         )
         self.lbl_ctr_status.setStyleSheet(f"color:{COLORS['green']}")
         self.btn_run_ctr.setEnabled(True)
@@ -139,12 +140,11 @@ class AutoRETab(QWidget):
 
         hdr = QHBoxLayout()
         hdr.addWidget(QLabel(
-            "Per-bit entropy analysis — contiguous high-entropy bit runs "
-            "suggest signal boundaries. Click a row to view bit-level chart.",
+            tr("autore.entropy.desc"),
             font=mono_font(8),
         ))
         hdr.addStretch()
-        self.btn_run_entropy = QPushButton("Run Analysis")
+        self.btn_run_entropy = QPushButton(tr("autore.entropy.run"))
         self.btn_run_entropy.setObjectName("btn_green")
         self.btn_run_entropy.clicked.connect(self._run_entropy)
         hdr.addWidget(self.btn_run_entropy)
@@ -154,7 +154,9 @@ class AutoRETab(QWidget):
 
         self.entropy_table = QTableWidget(0, 6)
         self.entropy_table.setHorizontalHeaderLabels([
-            "ID", "Start Bit", "Length", "Entropy", "Confidence", "Bit Range Label"
+            tr("autore.ctr.col_id"), tr("autore.entropy.col_start"),
+            tr("autore.entropy.col_length"), tr("autore.entropy.col_entropy"),
+            tr("autore.ctr.col_conf"), tr("autore.entropy.col_label")
         ])
         self.entropy_table.setFont(mono_font())
         self.entropy_table.verticalHeader().setVisible(False)
@@ -167,8 +169,8 @@ class AutoRETab(QWidget):
         # Per-bit entropy bar chart
         self.entropy_plot = pg.PlotWidget()
         self.entropy_plot.setBackground(COLORS["bg"])
-        self.entropy_plot.setLabel("bottom", "Bit position (0=LSB B0)")
-        self.entropy_plot.setLabel("left",   "Entropy (bits)")
+        self.entropy_plot.setLabel("bottom", tr("autore.entropy.axis_x"))
+        self.entropy_plot.setLabel("left",   tr("autore.entropy.axis_y"))
         self.entropy_plot.setYRange(0, 1)
         self._entropy_bar = pg.BarGraphItem(x=[], height=[], width=0.8,
                                             brush=COLORS["green"])
@@ -178,7 +180,7 @@ class AutoRETab(QWidget):
         splitter.setSizes([300, 200])
         lay.addWidget(splitter)
 
-        self.lbl_entropy_status = QLabel("Load frames, then click Run Analysis.")
+        self.lbl_entropy_status = QLabel(tr("autore.entropy.status_idle"))
         self.lbl_entropy_status.setFont(mono_font(8))
         self.lbl_entropy_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_entropy_status)
@@ -189,10 +191,10 @@ class AutoRETab(QWidget):
     def _run_entropy(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
             return
         self.btn_run_entropy.setEnabled(False)
-        self.lbl_entropy_status.setText("Computing bit entropies…")
+        self.lbl_entropy_status.setText(tr("autore.entropy.computing"))
 
         from core.entropy_boundary import suggest_signals, detect_signal_boundaries
         from ui.compute_worker import ComputeWorker
@@ -237,7 +239,7 @@ class AutoRETab(QWidget):
                 self.entropy_table.setItem(r, c, item)
 
         self.lbl_entropy_status.setText(
-            f"Found {len(suggestions)} candidate signal range(s)."
+            tr("autore.entropy.found", n=len(suggestions))
         )
         self.lbl_entropy_status.setStyleSheet(f"color:{COLORS['green']}")
         self.btn_run_entropy.setEnabled(True)
@@ -256,7 +258,7 @@ class AutoRETab(QWidget):
         ent = _bit_entropy(frames)
         x = list(range(64))
         self._entropy_bar.setOpts(x=x, height=ent.tolist(), width=0.8)
-        self.entropy_plot.setTitle(f"Bit entropy — 0x{can_id}")
+        self.entropy_plot.setTitle(tr("autore.entropy.plot_title", id=can_id))
 
     # ── 3. Correlated Signal Finder ───────────────────────────────────────────
 
@@ -268,12 +270,11 @@ class AutoRETab(QWidget):
 
         hdr = QHBoxLayout()
         hdr.addWidget(QLabel(
-            "Combined dependency score: Pearson + Spearman rank + Mutual Information. "
-            "Catches linear, monotonic, and bitfield correlations. High score = change together.",
+            tr("autore.corr.desc"),
             font=mono_font(8),
         ))
         hdr.addStretch()
-        self.btn_run_corr = QPushButton("Run Correlation")
+        self.btn_run_corr = QPushButton(tr("autore.corr.run"))
         self.btn_run_corr.setObjectName("btn_green")
         self.btn_run_corr.clicked.connect(self._run_correlation)
         hdr.addWidget(self.btn_run_corr)
@@ -291,9 +292,11 @@ class AutoRETab(QWidget):
         # High-correlation pairs table
         right = QWidget()
         rl = QVBoxLayout(right)
-        rl.addWidget(QLabel("HIGH CORRELATION PAIRS  (|r| > 0.7)", font=mono_font(8)))
+        rl.addWidget(QLabel(tr("autore.corr.pairs_title"), font=mono_font(8)))
         self.corr_pairs_table = QTableWidget(0, 3)
-        self.corr_pairs_table.setHorizontalHeaderLabels(["ID A", "ID B", "r"])
+        self.corr_pairs_table.setHorizontalHeaderLabels([
+            tr("autore.corr.col_id_a"), tr("autore.corr.col_id_b"), "r"
+        ])
         self.corr_pairs_table.setFont(mono_font())
         self.corr_pairs_table.verticalHeader().setVisible(False)
         self.corr_pairs_table.verticalHeader().setDefaultSectionSize(20)
@@ -307,7 +310,7 @@ class AutoRETab(QWidget):
         splitter.setSizes([500, 300])
         lay.addWidget(splitter)
 
-        self.lbl_corr_status = QLabel("Load frames, then click Run Correlation.")
+        self.lbl_corr_status = QLabel(tr("autore.corr.status_idle"))
         self.lbl_corr_status.setFont(mono_font(8))
         self.lbl_corr_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_corr_status)
@@ -316,10 +319,10 @@ class AutoRETab(QWidget):
     def _run_correlation(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
             return
         self.btn_run_corr.setEnabled(False)
-        self.lbl_corr_status.setText("Computing correlation matrix…")
+        self.lbl_corr_status.setText(tr("autore.corr.computing"))
 
         from core.signal_analyzer import compute_timing_dependency_matrix
         from ui.compute_worker import ComputeWorker
@@ -335,7 +338,7 @@ class AutoRETab(QWidget):
 
     def _on_correlation_done(self, corr_df):
         if corr_df.empty:
-            self.lbl_corr_status.setText("Not enough data.")
+            self.lbl_corr_status.setText(tr("autore.corr.no_data"))
             self.btn_run_corr.setEnabled(True)
             return
 
@@ -365,8 +368,7 @@ class AutoRETab(QWidget):
                 self.corr_pairs_table.setItem(row, c, item)
 
         self.lbl_corr_status.setText(
-            f"Matrix: {len(ids)}×{len(ids)} IDs  |  "
-            f"{len(pairs)} high-correlation pair(s) found."
+            tr("autore.corr.done", n_ids=len(ids), n_pairs=len(pairs))
         )
         self.lbl_corr_status.setStyleSheet(f"color:{COLORS['green']}")
         self.btn_run_corr.setEnabled(True)
@@ -380,23 +382,22 @@ class AutoRETab(QWidget):
         lay.setSpacing(6)
 
         lay.addWidget(QLabel(
-            "Select a message ID and a candidate checksum byte. "
-            "Tries XOR8, SUM8, CRC8-SAE, CRC8-AUTOSAR, Hyundai-XOR, and more.",
+            tr("autore.guesser.desc"),
             font=mono_font(8),
         ))
 
-        cfg_grp = QGroupBox("CONFIGURATION")
+        cfg_grp = QGroupBox(tr("autore.guesser.cfg_title"))
         cg = QHBoxLayout(cfg_grp)
-        cg.addWidget(QLabel("Message ID:"))
+        cg.addWidget(QLabel(tr("autore.guesser.msg_id")))
         self.guesser_id_combo = QComboBox()
         self.guesser_id_combo.setFont(mono_font())
         cg.addWidget(self.guesser_id_combo, 1)
-        cg.addWidget(QLabel("Candidate byte:"))
+        cg.addWidget(QLabel(tr("autore.guesser.candidate_byte")))
         self.guesser_byte_spin = QSpinBox()
         self.guesser_byte_spin.setRange(0, 7)
         self.guesser_byte_spin.setValue(7)
         cg.addWidget(self.guesser_byte_spin)
-        self.btn_guess = QPushButton("Guess Algorithm")
+        self.btn_guess = QPushButton(tr("autore.guesser.guess"))
         self.btn_guess.setObjectName("btn_green")
         self.btn_guess.clicked.connect(self._run_guesser)
         cg.addWidget(self.btn_guess)
@@ -404,7 +405,9 @@ class AutoRETab(QWidget):
 
         self.guesser_table = QTableWidget(0, 5)
         self.guesser_table.setHorizontalHeaderLabels([
-            "Algorithm", "Confidence", "Train Acc", "Val Acc", "Sample"
+            tr("autore.guesser.col_alg"), tr("autore.ctr.col_conf"),
+            tr("autore.guesser.col_train"), tr("autore.guesser.col_val"),
+            tr("autore.guesser.col_sample"),
         ])
         self.guesser_table.setFont(mono_font())
         self.guesser_table.verticalHeader().setVisible(False)
@@ -421,7 +424,7 @@ class AutoRETab(QWidget):
         self.guesser_detail.setMaximumHeight(100)
         lay.addWidget(self.guesser_detail)
 
-        self.lbl_guesser_status = QLabel("Select ID and byte, then click Guess.")
+        self.lbl_guesser_status = QLabel(tr("autore.guesser.status_idle"))
         self.lbl_guesser_status.setFont(mono_font(8))
         self.lbl_guesser_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_guesser_status)
@@ -440,7 +443,7 @@ class AutoRETab(QWidget):
     def _run_guesser(self):
         df = self._state.frames_df
         if df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
             return
         can_id = self.guesser_id_combo.currentData()
         if not can_id:
@@ -448,7 +451,7 @@ class AutoRETab(QWidget):
         byte_idx = self.guesser_byte_spin.value()
         frames   = df[df["ID"] == can_id]
         if len(frames) < 5:
-            self.lbl_guesser_status.setText("Need at least 5 frames for this ID.")
+            self.lbl_guesser_status.setText(tr("autore.guesser.need_frames"))
             return
 
         from core.checksum_guesser import guess_checksum
@@ -474,24 +477,23 @@ class AutoRETab(QWidget):
         if results:
             best = results[0]
             detail = (
-                f"Best match: {best['algorithm']}  "
-                f"confidence={best['confidence']:.1%}  "
-                f"train={best['train_acc']:.1%}  val={best['val_acc']:.1%}  "
-                f"n={best['sample_size']}\n\n"
-                f"To use in DBC Builder / injection, set checksum algorithm "
-                f"to '{best['algorithm']}' for message 0x{can_id}."
+                tr("autore.guesser.detail_best",
+                   alg=best["algorithm"],
+                   conf=f"{best['confidence']:.1%}",
+                   train=f"{best['train_acc']:.1%}",
+                   val=f"{best['val_acc']:.1%}",
+                   n=best["sample_size"], id=can_id)
             )
             self.guesser_detail.setPlainText(detail)
             self.lbl_guesser_status.setText(
-                f"Found {len(results)} matching algorithm(s) for B{byte_idx} of 0x{can_id}."
+                tr("autore.guesser.found", n=len(results), byte=byte_idx, id=can_id)
             )
             self.lbl_guesser_status.setStyleSheet(f"color:{COLORS['green']}")
         else:
             self.guesser_detail.setPlainText(
-                f"No algorithm matched B{byte_idx} of 0x{can_id}.\n"
-                "This byte may not be a checksum, or uses a proprietary algorithm."
+                tr("autore.guesser.detail_none", byte=byte_idx, id=can_id)
             )
-            self.lbl_guesser_status.setText("No matches found.")
+            self.lbl_guesser_status.setText(tr("autore.guesser.no_matches"))
             self.lbl_guesser_status.setStyleSheet(f"color:{COLORS['dim']}")
 
     # ── State handlers ────────────────────────────────────────────────────────

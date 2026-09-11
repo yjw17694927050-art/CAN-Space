@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 from core.canid import normalize_id
 from core.dbc_manager import signals_to_dbc_string, load_dbc, decode_frame, validate_signals
 
@@ -37,7 +38,7 @@ class DBCBuilderTab(QWidget):
         left_lay.setContentsMargins(4, 4, 4, 4)
         left_lay.setSpacing(4)
 
-        lbl = QLabel("SIGNALS")
+        lbl = QLabel(tr("dbc.signals"))
         lbl.setObjectName("label_dim")
         lbl.setFont(mono_font(8))
         left_lay.addWidget(lbl)
@@ -50,61 +51,61 @@ class DBCBuilderTab(QWidget):
         left_lay.addWidget(self.sig_list)
 
         toolbar_btns = QHBoxLayout()
-        btn_new = QPushButton("New")
+        btn_new = QPushButton(tr("dbc.btn_new"))
         btn_new.clicked.connect(self._new_signal)
-        btn_imp = QPushButton("Import")
+        btn_imp = QPushButton(tr("dbc.btn_import"))
         btn_imp.clicked.connect(self._import_dbc)
         toolbar_btns.addWidget(btn_new)
         toolbar_btns.addWidget(btn_imp)
         left_lay.addLayout(toolbar_btns)
 
         toolbar2 = QHBoxLayout()
-        btn_exp = QPushButton("Export DBC")
+        btn_exp = QPushButton(tr("dbc.btn_export_dbc"))
         btn_exp.setObjectName("btn_green")
         btn_exp.clicked.connect(self._export_dbc)
-        btn_val = QPushButton("Validate")
+        btn_val = QPushButton(tr("dbc.btn_validate"))
         btn_val.clicked.connect(self._validate)
         toolbar2.addWidget(btn_exp)
         toolbar2.addWidget(btn_val)
         left_lay.addLayout(toolbar2)
 
-        btn_auto = QPushButton("Auto-Build DBC")
-        btn_auto.setToolTip("Generate signals from statistical analysis")
+        btn_auto = QPushButton(tr("dbc.btn_auto_build"))
+        btn_auto.setToolTip(tr("dbc.tooltip_auto_build"))
         btn_auto.clicked.connect(self._auto_build)
         left_lay.addWidget(btn_auto)
 
-        btn_xref = QPushButton("Cross-Ref opendbc")
-        btn_xref.setToolTip("Cross-reference signals against commaai/opendbc")
+        btn_xref = QPushButton(tr("dbc.btn_cross_ref"))
+        btn_xref.setToolTip(tr("dbc.tooltip_cross_ref"))
         btn_xref.clicked.connect(self._cross_ref)
         left_lay.addWidget(btn_xref)
 
-        btn_op_dbc = QPushButton("Export openpilot DBC")
-        btn_op_dbc.setToolTip("Export in strict opendbc / comma.ai format")
+        btn_op_dbc = QPushButton(tr("dbc.btn_export_openpilot"))
+        btn_op_dbc.setToolTip(tr("dbc.tooltip_export_openpilot"))
         btn_op_dbc.clicked.connect(self._export_openpilot_dbc)
         left_lay.addWidget(btn_op_dbc)
 
-        btn_lua = QPushButton("Export Wireshark Lua")
-        btn_lua.setToolTip("Export Wireshark Lua dissector from DBC signals")
+        btn_lua = QPushButton(tr("dbc.btn_export_lua"))
+        btn_lua.setToolTip(tr("dbc.tooltip_export_lua"))
         btn_lua.clicked.connect(self._export_lua_dissector)
         left_lay.addWidget(btn_lua)
 
-        btn_matrix = QPushButton("Import CAN Matrix…")
-        btn_matrix.setToolTip("Import OEM signal spreadsheet (.xlsx / .csv)")
+        btn_matrix = QPushButton(tr("dbc.btn_import_matrix"))
+        btn_matrix.setToolTip(tr("dbc.tooltip_import_matrix"))
         btn_matrix.clicked.connect(self._import_can_matrix)
         left_lay.addWidget(btn_matrix)
 
-        btn_arxml_imp = QPushButton("Import ARXML…")
-        btn_arxml_imp.setToolTip("Import AUTOSAR 4.x ARXML signal definitions")
+        btn_arxml_imp = QPushButton(tr("dbc.btn_import_arxml"))
+        btn_arxml_imp.setToolTip(tr("dbc.tooltip_import_arxml"))
         btn_arxml_imp.clicked.connect(self._import_arxml)
         left_lay.addWidget(btn_arxml_imp)
 
-        btn_arxml_exp = QPushButton("Export ARXML…")
-        btn_arxml_exp.setToolTip("Export signals as AUTOSAR 4.3 System Template")
+        btn_arxml_exp = QPushButton(tr("dbc.btn_export_arxml"))
+        btn_arxml_exp.setToolTip(tr("dbc.tooltip_export_arxml"))
         btn_arxml_exp.clicked.connect(self._export_arxml)
         left_lay.addWidget(btn_arxml_exp)
 
-        btn_candbpp = QPushButton("Export CANdb++…")
-        btn_candbpp.setToolTip("Export Vector CANdb++ format (.dbc with BA_ attributes)")
+        btn_candbpp = QPushButton(tr("dbc.btn_export_candbpp"))
+        btn_candbpp.setToolTip(tr("dbc.tooltip_export_candbpp"))
         btn_candbpp.clicked.connect(self._export_candbpp)
         left_lay.addWidget(btn_candbpp)
 
@@ -116,7 +117,7 @@ class DBCBuilderTab(QWidget):
         right_lay.setContentsMargins(6, 6, 6, 6)
         right_lay.setSpacing(6)
 
-        lbl_ed = QLabel("SIGNAL EDITOR")
+        lbl_ed = QLabel(tr("dbc.signal_editor"))
         lbl_ed.setObjectName("label_dim")
         lbl_ed.setFont(mono_font(8))
         right_lay.addWidget(lbl_ed)
@@ -131,55 +132,55 @@ class DBCBuilderTab(QWidget):
                 grid.addWidget(QLabel(label2), row, 2)
                 grid.addWidget(widget2, row, 3)
 
-        self.f_msg_id   = QLineEdit(); self.f_msg_id.setPlaceholderText("0x000")
-        self.f_msg_name = QLineEdit(); self.f_msg_name.setPlaceholderText("MSG_NAME")
-        add_row(0, "Message ID:", self.f_msg_id, "Message Name:", self.f_msg_name)
+        self.f_msg_id   = QLineEdit(); self.f_msg_id.setPlaceholderText(tr("dbc.ph_msg_id"))
+        self.f_msg_name = QLineEdit(); self.f_msg_name.setPlaceholderText(tr("dbc.ph_msg_name"))
+        add_row(0, tr("dbc.lbl_msg_id"), self.f_msg_id, tr("dbc.lbl_msg_name"), self.f_msg_name)
 
-        self.f_sig_name = QLineEdit(); self.f_sig_name.setPlaceholderText("Signal_Name")
-        self.f_unit     = QLineEdit(); self.f_unit.setPlaceholderText("km/h")
-        add_row(1, "Signal Name:", self.f_sig_name, "Unit:", self.f_unit)
+        self.f_sig_name = QLineEdit(); self.f_sig_name.setPlaceholderText(tr("dbc.ph_sig_name"))
+        self.f_unit     = QLineEdit(); self.f_unit.setPlaceholderText(tr("dbc.ph_unit"))
+        add_row(1, tr("dbc.lbl_sig_name"), self.f_sig_name, tr("dbc.lbl_unit"), self.f_unit)
 
         self.f_start_bit = QLineEdit("0")
         self.f_length    = QLineEdit("8")
-        add_row(2, "Start Bit:", self.f_start_bit, "Length (bits):", self.f_length)
+        add_row(2, tr("dbc.lbl_start_bit"), self.f_start_bit, tr("dbc.lbl_length"), self.f_length)
 
         self.f_byte_order = QComboBox()
         self.f_byte_order.addItems(["little", "big"])
         self.f_val_type = QComboBox()
         self.f_val_type.addItems(["unsigned", "signed"])
-        add_row(3, "Byte Order:", self.f_byte_order, "Value Type:", self.f_val_type)
+        add_row(3, tr("dbc.lbl_byte_order"), self.f_byte_order, tr("dbc.lbl_val_type"), self.f_val_type)
 
         self.f_scale  = QLineEdit("1.0")
         self.f_offset = QLineEdit("0.0")
-        add_row(4, "Scale:", self.f_scale, "Offset:", self.f_offset)
+        add_row(4, tr("dbc.lbl_scale"), self.f_scale, tr("dbc.lbl_offset"), self.f_offset)
 
         self.f_min = QLineEdit("0")
         self.f_max = QLineEdit("255")
-        add_row(5, "Min Value:", self.f_min, "Max Value:", self.f_max)
+        add_row(5, tr("dbc.lbl_min"), self.f_min, tr("dbc.lbl_max"), self.f_max)
 
         self.f_desc = QLineEdit()
-        self.f_desc.setPlaceholderText("Signal description")
-        grid.addWidget(QLabel("Description:"), 6, 0)
+        self.f_desc.setPlaceholderText(tr("dbc.ph_desc"))
+        grid.addWidget(QLabel(tr("dbc.lbl_desc")), 6, 0)
         grid.addWidget(self.f_desc, 6, 1, 1, 3)
 
         right_lay.addLayout(grid)
 
         # Notes layer
-        notes_lbl = QLabel("SIGNAL NOTES  (persisted in .canlab project)")
+        notes_lbl = QLabel(tr("dbc.signal_notes"))
         notes_lbl.setObjectName("label_dim")
         notes_lbl.setFont(mono_font(8))
         right_lay.addWidget(notes_lbl)
         self.f_notes = QTextEdit()
-        self.f_notes.setPlaceholderText("Add notes, observations, hypotheses…")
+        self.f_notes.setPlaceholderText(tr("dbc.ph_notes"))
         self.f_notes.setMaximumHeight(60)
         self.f_notes.setFont(mono_font(8))
         right_lay.addWidget(self.f_notes)
 
         save_row = QHBoxLayout()
-        btn_save = QPushButton("Save Signal")
+        btn_save = QPushButton(tr("dbc.btn_save_signal"))
         btn_save.setObjectName("btn_green")
         btn_save.clicked.connect(self._save_signal)
-        btn_test = QPushButton("Test Decode")
+        btn_test = QPushButton(tr("dbc.btn_test_decode"))
         btn_test.clicked.connect(self._test_decode)
         save_row.addWidget(btn_save)
         save_row.addWidget(btn_test)
@@ -187,7 +188,7 @@ class DBCBuilderTab(QWidget):
         right_lay.addLayout(save_row)
 
         # Live decode preview
-        lbl_prev = QLabel("LIVE DECODE PREVIEW")
+        lbl_prev = QLabel(tr("dbc.live_preview"))
         lbl_prev.setObjectName("label_dim")
         lbl_prev.setFont(mono_font(8))
         right_lay.addWidget(lbl_prev)
@@ -307,7 +308,7 @@ class DBCBuilderTab(QWidget):
             self._state.update_dbc_signal(self._selected_idx, sig)
         else:
             self._state.add_dbc_signal(sig)
-        self.status_label.setText("Saved.")
+        self.status_label.setText(tr("dbc.status_saved"))
         self.status_label.setStyleSheet(f"color:{COLORS['green']}")
 
     def _test_decode(self):
@@ -315,7 +316,7 @@ class DBCBuilderTab(QWidget):
         mid = sig["message_id"]
         frames = self._state.get_frames_for_id(mid)
         if frames.empty:
-            self.status_label.setText("No frames for this ID")
+            self.status_label.setText(tr("dbc.msg_no_frames"))
             return
         self._populate_preview_with_sig(sig, frames.tail(5))
 
@@ -352,46 +353,46 @@ class DBCBuilderTab(QWidget):
 
     def _export_dbc(self):
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals defined yet.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals"))
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Export DBC", "decoded.dbc", "DBC (*.dbc)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("dbc.title_export_dbc"), "decoded.dbc", "DBC (*.dbc)")
         if path:
             try:
                 dbc_str = signals_to_dbc_string(self._state.dbc_signals)
                 with open(path, "w") as f:
                     f.write(dbc_str)
-                self.status_label.setText(f"Exported to {path}")
+                self.status_label.setText(tr("dbc.status_exported", path=path))
                 self.status_label.setStyleSheet(f"color:{COLORS['green']}")
             except Exception as e:
-                QMessageBox.critical(self, "Export Error", str(e))
+                QMessageBox.critical(self, tr("dbc.title_export_error"), str(e))
 
     def _import_dbc(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Import DBC", "", "DBC (*.dbc)")
+        path, _ = QFileDialog.getOpenFileName(self, tr("dbc.title_import_dbc"), "", "DBC (*.dbc)")
         if path:
             try:
                 sigs = load_dbc(path)
                 for sig in sigs:
                     self._state.add_dbc_signal(sig)
-                self.status_label.setText(f"Imported {len(sigs)} signals")
+                self.status_label.setText(tr("dbc.status_imported", n=len(sigs)))
                 self.status_label.setStyleSheet(f"color:{COLORS['green']}")
             except Exception as e:
-                QMessageBox.critical(self, "Import Error", str(e))
+                QMessageBox.critical(self, tr("dbc.title_import_error"), str(e))
 
     def _validate(self):
         errors = validate_signals(self._state.dbc_signals)
         if errors:
-            QMessageBox.warning(self, "Validation Errors", "\n".join(errors))
+            QMessageBox.warning(self, tr("dbc.title_validation_errors"), "\n".join(errors))
         else:
-            QMessageBox.information(self, "Valid", "All signals are valid.")
+            QMessageBox.information(self, tr("dbc.title_valid"), tr("dbc.msg_all_valid"))
 
     def _list_context_menu(self, pos):
         idx = self.sig_list.currentRow()
         if idx < 0:
             return
         menu = QMenu(self)
-        menu.addAction("Edit",      lambda: self._on_list_select(idx))
-        menu.addAction("Duplicate", lambda: self._duplicate(idx))
-        menu.addAction("Delete",    lambda: self._delete(idx))
+        menu.addAction(tr("dbc.menu_edit"),      lambda: self._on_list_select(idx))
+        menu.addAction(tr("dbc.menu_duplicate"), lambda: self._duplicate(idx))
+        menu.addAction(tr("dbc.menu_delete"),    lambda: self._delete(idx))
         menu.exec(self.sig_list.mapToGlobal(pos))
 
     def _duplicate(self, idx: int):
@@ -407,7 +408,7 @@ class DBCBuilderTab(QWidget):
     def _auto_build(self):
         from core.auto_dbc import build_from_analyzer
         if self._state.frames_df.empty:
-            QMessageBox.information(self, "No Data", "Load a CAN log first.")
+            QMessageBox.information(self, tr("dbc.title_no_data"), tr("dbc.msg_load_can_log"))
             return
         signals = build_from_analyzer(self._state)
         existing_ids = {s.get("message_id") for s in self._state.dbc_signals}
@@ -416,7 +417,7 @@ class DBCBuilderTab(QWidget):
             if sig["message_id"] not in existing_ids:
                 self._state.add_dbc_signal(sig)
                 added += 1
-        self.status_label.setText(f"Auto-built: added {added} signals")
+        self.status_label.setText(tr("dbc.status_auto_built", n=added))
         self.status_label.setStyleSheet(f"color:{COLORS['green']}")
 
     def _note_key(self, sig: dict) -> str:
@@ -442,10 +443,10 @@ class DBCBuilderTab(QWidget):
 
     def _export_openpilot_dbc(self):
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals defined yet.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals"))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export openpilot DBC", "openpilot.dbc", "DBC (*.dbc)"
+            self, tr("dbc.title_export_openpilot"), "openpilot.dbc", "DBC (*.dbc)"
         )
         if not path:
             return
@@ -455,17 +456,17 @@ class DBCBuilderTab(QWidget):
             dbc_str = export_opendbc(self._state.dbc_signals, HYUNDAI_MSG_META)
             with open(path, "w") as f:
                 f.write(dbc_str)
-            self.status_label.setText(f"openpilot DBC exported: {path}")
+            self.status_label.setText(tr("dbc.status_export_openpilot", path=path))
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Export Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_export_error"), str(e))
 
     def _export_lua_dissector(self):
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals defined yet.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals"))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export Wireshark Lua Dissector", "canlab_dbc.lua", "Lua (*.lua)"
+            self, tr("dbc.title_export_lua"), "canlab_dbc.lua", "Lua (*.lua)"
         )
         if not path:
             return
@@ -474,15 +475,15 @@ class DBCBuilderTab(QWidget):
             lua_str = signals_to_lua_dissector(self._state.dbc_signals)
             with open(path, "w") as f:
                 f.write(lua_str)
-            self.status_label.setText(f"Lua dissector exported: {path}")
+            self.status_label.setText(tr("dbc.status_export_lua", path=path))
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Export Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_export_error"), str(e))
 
     def _cross_ref(self):
         from core.opendbc_matcher import scan
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals to cross-reference.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_cross_ref"))
             return
         repo_ctx = None
         if self._state.repo_info:
@@ -491,14 +492,14 @@ class DBCBuilderTab(QWidget):
         self._state.opendbc_matches = matches
         if matches:
             lines = [f"{k} → {v['file']} (msg:{v['msg']})" for k, v in matches.items()]
-            QMessageBox.information(self, "opendbc Matches", "\n".join(lines))
+            QMessageBox.information(self, tr("dbc.title_opendbc_matches"), "\n".join(lines))
         else:
-            QMessageBox.information(self, "opendbc", "No matches found.")
+            QMessageBox.information(self, tr("dbc.title_opendbc"), tr("dbc.msg_no_matches"))
 
     def _import_can_matrix(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Import CAN Matrix", "",
-            "Spreadsheets (*.xlsx *.xls *.csv);;All Files (*)"
+            self, tr("dbc.title_import_matrix"), "",
+            tr("dbc.filter_spreadsheets") + ";;All Files (*)"
         )
         if not path:
             return
@@ -506,7 +507,7 @@ class DBCBuilderTab(QWidget):
             from core.can_matrix_parser import parse_can_matrix
             signals = parse_can_matrix(path)
             if not signals:
-                QMessageBox.warning(self, "Empty", "No signals found in the file.")
+                QMessageBox.warning(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals_file"))
                 return
             for sig in signals:
                 self._state.add_dbc_signal(sig)
@@ -514,16 +515,16 @@ class DBCBuilderTab(QWidget):
             from core.dbc_manager import build_db_from_signals
             build_db_from_signals(self._state.dbc_signals)
             self.status_label.setText(
-                f"Imported {len(signals)} signal(s) from CAN matrix."
+                tr("dbc.status_imported_matrix", n=len(signals))
             )
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Import Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_import_error"), str(e))
 
     def _import_arxml(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Import ARXML", "",
-            "ARXML Files (*.arxml *.xml);;All Files (*)"
+            self, tr("dbc.title_import_arxml"), "",
+            tr("dbc.filter_arxml") + ";;All Files (*)"
         )
         if not path:
             return
@@ -531,24 +532,24 @@ class DBCBuilderTab(QWidget):
             from core.arxml_import import parse_arxml
             signals = parse_arxml(path)
             if not signals:
-                QMessageBox.warning(self, "Empty", "No signals found in ARXML.")
+                QMessageBox.warning(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals_arxml"))
                 return
             for sig in signals:
                 self._state.add_dbc_signal(sig)
             from core.dbc_manager import build_db_from_signals
             build_db_from_signals(self._state.dbc_signals)
-            self.status_label.setText(f"Imported {len(signals)} signal(s) from ARXML.")
+            self.status_label.setText(tr("dbc.status_imported_arxml", n=len(signals)))
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Import Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_import_error"), str(e))
 
     def _export_arxml(self):
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals to export.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals_export"))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export ARXML", "canlab_export.arxml",
-            "ARXML (*.arxml);;XML (*.xml)"
+            self, tr("dbc.title_export_arxml"), "canlab_export.arxml",
+            tr("dbc.filter_arxml_export") + ";;XML (*.xml)"
         )
         if not path:
             return
@@ -557,17 +558,17 @@ class DBCBuilderTab(QWidget):
             arxml = to_arxml_string(self._state.dbc_signals)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(arxml)
-            self.status_label.setText(f"ARXML exported: {path}")
+            self.status_label.setText(tr("dbc.status_export_arxml", path=path))
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Export Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_export_error"), str(e))
 
     def _export_candbpp(self):
         if not self._state.dbc_signals:
-            QMessageBox.information(self, "Empty", "No signals to export.")
+            QMessageBox.information(self, tr("dbc.title_empty"), tr("dbc.msg_no_signals_export"))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export CANdb++", "canlab_export.dbc", "DBC (*.dbc)"
+            self, tr("dbc.title_export_candbpp"), "canlab_export.dbc", "DBC (*.dbc)"
         )
         if not path:
             return
@@ -576,7 +577,7 @@ class DBCBuilderTab(QWidget):
             dbc_str = to_candbpp_string(self._state.dbc_signals)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(dbc_str)
-            self.status_label.setText(f"CANdb++ exported: {path}")
+            self.status_label.setText(tr("dbc.status_export_candbpp", path=path))
             self.status_label.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
-            QMessageBox.critical(self, "Export Error", str(e))
+            QMessageBox.critical(self, tr("dbc.title_export_error"), str(e))

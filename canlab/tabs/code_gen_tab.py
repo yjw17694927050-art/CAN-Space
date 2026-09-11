@@ -13,6 +13,7 @@ from PyQt6.QtGui import (
 import re
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 
 class PythonHighlighter(QSyntaxHighlighter):
@@ -84,7 +85,7 @@ class CodeGenTab(QWidget):
         left_lay.setSpacing(6)
 
         # Mode
-        grp_mode = QGroupBox("MODE")
+        grp_mode = QGroupBox(tr("codegen.mode"))
         grp_m_lay = QVBoxLayout(grp_mode)
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(["READ", "WRITE", "BOTH"])
@@ -92,37 +93,37 @@ class CodeGenTab(QWidget):
         left_lay.addWidget(grp_mode)
 
         # Interface
-        grp_iface = QGroupBox("INTERFACE")
+        grp_iface = QGroupBox(tr("codegen.iface"))
         grp_i_lay = QVBoxLayout(grp_iface)
         self.iface_combo = QComboBox()
         self.iface_combo.addItems(["socketcan", "pcan", "kvaser", "virtual"])
         grp_i_lay.addWidget(self.iface_combo)
         self.channel_edit = QLineEdit("can0")
-        grp_i_lay.addWidget(QLabel("Channel:"))
+        grp_i_lay.addWidget(QLabel(tr("codegen.channel")))
         grp_i_lay.addWidget(self.channel_edit)
         self.bitrate_combo = QComboBox()
         self.bitrate_combo.addItems(["500000", "250000", "1000000"])
-        grp_i_lay.addWidget(QLabel("Bitrate:"))
+        grp_i_lay.addWidget(QLabel(tr("codegen.bitrate")))
         grp_i_lay.addWidget(self.bitrate_combo)
         left_lay.addWidget(grp_iface)
 
         # Signals
-        grp_sig = QGroupBox("SIGNALS TO INCLUDE")
+        grp_sig = QGroupBox(tr("codegen.sig_include"))
         self.sig_checks_lay = QVBoxLayout(grp_sig)
         left_lay.addWidget(grp_sig)
 
         # Hyundai options
-        grp_hyu = QGroupBox("HYUNDAI OPTIONS")
+        grp_hyu = QGroupBox(tr("codegen.hyundai_opts"))
         grp_h_lay = QVBoxLayout(grp_hyu)
-        self.chk_checksum = QCheckBox("Include checksum handler")
-        self.chk_counter  = QCheckBox("Include rolling counter")
-        self.chk_keepalive = QCheckBox("Include keepalive loop")
+        self.chk_checksum = QCheckBox(tr("codegen.chk_checksum"))
+        self.chk_counter  = QCheckBox(tr("codegen.chk_counter"))
+        self.chk_keepalive = QCheckBox(tr("codegen.chk_keepalive"))
         for c in [self.chk_checksum, self.chk_counter, self.chk_keepalive]:
             c.setChecked(True)
             grp_h_lay.addWidget(c)
         left_lay.addWidget(grp_hyu)
 
-        btn_gen = QPushButton("Generate Code")
+        btn_gen = QPushButton(tr("codegen.generate"))
         btn_gen.setObjectName("btn_green")
         btn_gen.clicked.connect(self._generate)
         left_lay.addWidget(btn_gen)
@@ -144,20 +145,20 @@ class CodeGenTab(QWidget):
         tb = QHBoxLayout(toolbar)
         tb.setContentsMargins(4, 2, 4, 2)
         tb.setSpacing(6)
-        lbl = QLabel("GENERATED PYTHON")
+        lbl = QLabel(tr("codegen.output_title"))
         lbl.setObjectName("label_dim")
         lbl.setFont(mono_font(8))
         tb.addWidget(lbl)
         tb.addStretch()
-        btn_copy = QPushButton("Copy")
+        btn_copy = QPushButton(tr("codegen.copy"))
         btn_copy.clicked.connect(self._copy)
         btn_copy.setMaximumWidth(55)
         tb.addWidget(btn_copy)
-        btn_save = QPushButton("Save .py")
+        btn_save = QPushButton(tr("codegen.save"))
         btn_save.clicked.connect(self._save)
         btn_save.setMaximumWidth(70)
         tb.addWidget(btn_save)
-        btn_open = QPushButton("Open in Editor")
+        btn_open = QPushButton(tr("codegen.open"))
         btn_open.clicked.connect(self._open_in_editor)
         btn_open.setMaximumWidth(110)
         tb.addWidget(btn_open)
@@ -217,7 +218,7 @@ class CodeGenTab(QWidget):
         QApplication.clipboard().setText(self.code_edit.toPlainText())
 
     def _save(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Save Python", "can_reader.py", "Python (*.py)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("codegen.save_title"), "can_reader.py", "Python (*.py)")
         if path:
             with open(path, "w") as f:
                 f.write(self.code_edit.toPlainText())

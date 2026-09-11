@@ -11,6 +11,7 @@ from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
+from core.i18n import tr
 
 
 class InjectionTab(QWidget):
@@ -34,12 +35,12 @@ class InjectionTab(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
-        tabs.addTab(self._build_inject_tab(),    "INJECT")
-        tabs.addTab(self._build_replay_tab(),    "REPLAY")
-        tabs.addTab(self._build_trigger_tab(),   "TRIGGERS")
-        tabs.addTab(self._build_safety_tab(),    "SAFETY SCAN")
-        tabs.addTab(self._build_fuzz_tab(),      "FUZZ")
-        tabs.addTab(self._build_sequence_tab(),  "TEST SEQUENCE")
+        tabs.addTab(self._build_inject_tab(),    tr("inject.tab.inject"))
+        tabs.addTab(self._build_replay_tab(),    tr("inject.tab.replay"))
+        tabs.addTab(self._build_trigger_tab(),   tr("inject.tab.triggers"))
+        tabs.addTab(self._build_safety_tab(),    tr("inject.tab.safety"))
+        tabs.addTab(self._build_fuzz_tab(),      tr("inject.tab.fuzz"))
+        tabs.addTab(self._build_sequence_tab(),  tr("inject.tab.sequence"))
         outer.addWidget(tabs)
 
     # ── Inject sub-tab ────────────────────────────────────────────────────────
@@ -50,15 +51,15 @@ class InjectionTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
-        self.lbl_can_status = QLabel("CAN: disconnected — connect bus first")
+        self.lbl_can_status = QLabel(tr("inject.can.disconnected_ph"))
         self.lbl_can_status.setFont(mono_font(8))
         self.lbl_can_status.setStyleSheet(f"color:{COLORS['error']}")
         lay.addWidget(self.lbl_can_status)
 
         # Signal picker
-        sig_grp = QGroupBox("SIGNAL")
+        sig_grp = QGroupBox(tr("inject.grp.signal"))
         sg = QHBoxLayout(sig_grp)
-        sg.addWidget(QLabel("Signal:"))
+        sg.addWidget(QLabel(tr("inject.signal_colon")))
         self.sig_combo = QComboBox()
         self.sig_combo.setFont(mono_font())
         self.sig_combo.currentIndexChanged.connect(self._on_sig_changed)
@@ -66,7 +67,7 @@ class InjectionTab(QWidget):
         lay.addWidget(sig_grp)
 
         # Value slider + spin
-        val_grp = QGroupBox("VALUE")
+        val_grp = QGroupBox(tr("inject.grp.value"))
         vg = QHBoxLayout(val_grp)
         self.val_slider = QSlider(Qt.Orientation.Horizontal)
         self.val_slider.setMinimum(-10000)
@@ -90,16 +91,16 @@ class InjectionTab(QWidget):
         lay.addWidget(val_grp)
 
         # Period + options
-        opt_grp = QGroupBox("OPTIONS")
+        opt_grp = QGroupBox(tr("inject.grp.options"))
         og = QHBoxLayout(opt_grp)
-        og.addWidget(QLabel("Period (ms):"))
+        og.addWidget(QLabel(tr("inject.period")))
         self.period_spin = QSpinBox()
         self.period_spin.setRange(1, 5000)
         self.period_spin.setValue(10)
         og.addWidget(self.period_spin)
-        self.chk_checksum = QCheckBox("Checksum")
+        self.chk_checksum = QCheckBox(tr("inject.chk.checksum"))
         self.chk_checksum.setChecked(True)
-        self.chk_counter  = QCheckBox("Counter")
+        self.chk_counter  = QCheckBox(tr("inject.chk.counter"))
         self.chk_counter.setChecked(True)
         og.addWidget(self.chk_checksum)
         og.addWidget(self.chk_counter)
@@ -108,13 +109,13 @@ class InjectionTab(QWidget):
 
         # Send / Loop / Stop
         btn_row = QHBoxLayout()
-        self.btn_send_once = QPushButton("Send Once")
+        self.btn_send_once = QPushButton(tr("inject.btn.sendOnce"))
         self.btn_send_once.setObjectName("btn_green")
         self.btn_send_once.clicked.connect(self._send_once)
-        self.btn_loop = QPushButton("Start Loop")
+        self.btn_loop = QPushButton(tr("inject.btn.startLoop"))
         self.btn_loop.setObjectName("btn_amber")
         self.btn_loop.clicked.connect(self._toggle_loop)
-        self.btn_stop_inj = QPushButton("Stop")
+        self.btn_stop_inj = QPushButton(tr("inject.btn.stop"))
         self.btn_stop_inj.clicked.connect(self._stop_injection)
         self.btn_stop_inj.setEnabled(False)
         for b in [self.btn_send_once, self.btn_loop, self.btn_stop_inj]:
@@ -136,22 +137,22 @@ class InjectionTab(QWidget):
         lay.setSpacing(8)
 
         file_row = QHBoxLayout()
-        self.lbl_replay_file = QLabel("No log loaded")
+        self.lbl_replay_file = QLabel(tr("inject.replay.noLog"))
         self.lbl_replay_file.setFont(mono_font(8))
         file_row.addWidget(self.lbl_replay_file, 1)
-        btn_load = QPushButton("Load Log…")
+        btn_load = QPushButton(tr("inject.replay.loadLog"))
         btn_load.clicked.connect(self._load_replay_log)
         file_row.addWidget(btn_load)
         lay.addLayout(file_row)
 
         speed_row = QHBoxLayout()
-        speed_row.addWidget(QLabel("Speed:"))
+        speed_row.addWidget(QLabel(tr("inject.replay.speed")))
         self.speed_spin = QDoubleSpinBox()
         self.speed_spin.setRange(0.1, 10.0)
         self.speed_spin.setSingleStep(0.5)
         self.speed_spin.setValue(1.0)
         speed_row.addWidget(self.speed_spin)
-        self.chk_replay_loop = QCheckBox("Loop")
+        self.chk_replay_loop = QCheckBox(tr("inject.replay.loop"))
         speed_row.addWidget(self.chk_replay_loop)
         speed_row.addStretch()
         lay.addLayout(speed_row)
@@ -169,12 +170,12 @@ class InjectionTab(QWidget):
         lay.addWidget(self.replay_scrubber)
 
         btn_row2 = QHBoxLayout()
-        self.btn_replay_start = QPushButton("Play")
+        self.btn_replay_start = QPushButton(tr("inject.replay.play"))
         self.btn_replay_start.setObjectName("btn_green")
         self.btn_replay_start.clicked.connect(self._start_replay)
-        self.btn_replay_pause = QPushButton("Pause")
+        self.btn_replay_pause = QPushButton(tr("inject.replay.pause"))
         self.btn_replay_pause.clicked.connect(self._pause_replay)
-        self.btn_replay_stop  = QPushButton("Stop")
+        self.btn_replay_stop  = QPushButton(tr("inject.btn.stop"))
         self.btn_replay_stop.clicked.connect(self._stop_replay)
         for b in [self.btn_replay_start, self.btn_replay_pause, self.btn_replay_stop]:
             btn_row2.addWidget(b)
@@ -196,33 +197,33 @@ class InjectionTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(6)
 
-        lay.addWidget(QLabel("TRIGGER RULES", font=mono_font(9)))
+        lay.addWidget(QLabel(tr("inject.trig.rulesTitle"), font=mono_font(9)))
 
         # Rule editor
-        rule_grp = QGroupBox("Add / Edit Rule")
+        rule_grp = QGroupBox(tr("inject.trig.addEditRule"))
         rg = QHBoxLayout(rule_grp)
-        rg.addWidget(QLabel("ID (hex):"))
+        rg.addWidget(QLabel(tr("inject.trig.id")))
         self.trig_id = QLineEdit()
-        self.trig_id.setPlaceholderText("0A6 or blank=any")
+        self.trig_id.setPlaceholderText(tr("inject.trig.idPh"))
         self.trig_id.setFixedWidth(80)
         rg.addWidget(self.trig_id)
-        rg.addWidget(QLabel("Byte:"))
+        rg.addWidget(QLabel(tr("inject.trig.byte")))
         self.trig_byte = QSpinBox()
         self.trig_byte.setRange(0, 7)
         rg.addWidget(self.trig_byte)
-        rg.addWidget(QLabel("Op:"))
+        rg.addWidget(QLabel(tr("inject.trig.op")))
         self.trig_op = QComboBox()
         self.trig_op.addItems([">", "<", "==", "!=", "&", ">=", "<="])
         rg.addWidget(self.trig_op)
-        rg.addWidget(QLabel("Val:"))
+        rg.addWidget(QLabel(tr("inject.trig.val")))
         self.trig_val = QSpinBox()
         self.trig_val.setRange(0, 255)
         rg.addWidget(self.trig_val)
-        rg.addWidget(QLabel("Label:"))
+        rg.addWidget(QLabel(tr("inject.trig.label")))
         self.trig_label = QLineEdit()
-        self.trig_label.setPlaceholderText("rule label")
+        self.trig_label.setPlaceholderText(tr("inject.trig.labelPh"))
         rg.addWidget(self.trig_label, 1)
-        btn_add_rule = QPushButton("Add")
+        btn_add_rule = QPushButton(tr("inject.trig.add"))
         btn_add_rule.clicked.connect(self._add_trigger_rule)
         rg.addWidget(btn_add_rule)
         lay.addWidget(rule_grp)
@@ -240,14 +241,14 @@ class InjectionTab(QWidget):
 
         # Enable / start
         trig_ctl = QHBoxLayout()
-        self.btn_trig_start = QPushButton("Enable Triggers")
+        self.btn_trig_start = QPushButton(tr("inject.trig.enable"))
         self.btn_trig_start.setObjectName("btn_amber")
         self.btn_trig_start.clicked.connect(self._toggle_triggers)
         trig_ctl.addWidget(self.btn_trig_start)
         trig_ctl.addStretch()
         lay.addLayout(trig_ctl)
 
-        lay.addWidget(QLabel("TRIGGER LOG", font=mono_font(8)))
+        lay.addWidget(QLabel(tr("inject.trig.logTitle"), font=mono_font(8)))
         self.trig_log_text = QTextEdit()
         self.trig_log_text.setReadOnly(True)
         self.trig_log_text.setFont(mono_font(8))
@@ -283,10 +284,10 @@ class InjectionTab(QWidget):
 
     def _on_can_status(self, connected: bool):
         if connected:
-            self.lbl_can_status.setText("CAN: connected")
+            self.lbl_can_status.setText(tr("inject.can.connected"))
             self.lbl_can_status.setStyleSheet(f"color:{COLORS['green']}")
         else:
-            self.lbl_can_status.setText("CAN: disconnected")
+            self.lbl_can_status.setText(tr("inject.can.disconnected"))
             self.lbl_can_status.setStyleSheet(f"color:{COLORS['error']}")
 
     # ── Injection actions ─────────────────────────────────────────────────────
@@ -303,17 +304,19 @@ class InjectionTab(QWidget):
     def _send_once(self):
         sig = self._get_selected_sig()
         if not sig:
-            QMessageBox.information(self, "No Signal", "Select a signal first.")
+            QMessageBox.information(self, tr("inject.msgNoSig.title"),
+                                    tr("inject.msgNoSig.text"))
             return
         bus = self._get_bus()
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("inject.msgNoBus.title"),
+                                    tr("inject.msgNoBus.text"))
             return
         from core.injection import pack_signal, hyundai_checksum
         from core.safety import is_armed
         if not is_armed():
-            QMessageBox.warning(self, "Disarmed",
-                                "Bus transmit is disarmed. Enable ARM TX first.")
+            QMessageBox.warning(self, tr("inject.msgDisarmed.title"),
+                                tr("inject.msgDisarmed.text"))
             return
         value = self.val_spin.value()
         data  = pack_signal(value, sig)
@@ -330,7 +333,7 @@ class InjectionTab(QWidget):
         try:
             bus.send(msg)
             self.lbl_inj_status.setText(
-                f"Sent 0x{mid:03X}  [{' '.join(f'{b:02X}' for b in data)}]"
+                tr("inject.sent", mid=mid, data=" ".join(f"{b:02X}" for b in data))
             )
             self.lbl_inj_status.setStyleSheet(f"color:{COLORS['green']}")
         except Exception as e:
@@ -346,7 +349,8 @@ class InjectionTab(QWidget):
             return
         bus = self._get_bus()
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("inject.msgNoBus.title"),
+                                    tr("inject.msgNoBus.text"))
             return
         from core.injection import InjectionWorker
         value  = self.val_spin.value()
@@ -357,13 +361,13 @@ class InjectionTab(QWidget):
             apply_counter=self.chk_counter.isChecked(),
         )
         self._inj_worker.tick.connect(
-            lambda n, v: self.lbl_inj_status.setText(f"Sending {n} = {v:.2f}")
+            lambda n, v: self.lbl_inj_status.setText(tr("inject.sending", n=n, v=v))
         )
         self._inj_worker.error.connect(
             lambda e: self.lbl_inj_status.setText(f"Error: {e}")
         )
         self._inj_worker.start()
-        self.btn_loop.setText("Stop Loop")
+        self.btn_loop.setText(tr("inject.btn.stopLoop"))
         self.btn_stop_inj.setEnabled(True)
         self.lbl_inj_status.setStyleSheet(f"color:{COLORS['amber']}")
 
@@ -371,9 +375,9 @@ class InjectionTab(QWidget):
         if self._inj_worker:
             self._inj_worker.stop()
             self._inj_worker = None
-        self.btn_loop.setText("Start Loop")
+        self.btn_loop.setText(tr("inject.btn.startLoop"))
         self.btn_stop_inj.setEnabled(False)
-        self.lbl_inj_status.setText("Stopped.")
+        self.lbl_inj_status.setText(tr("inject.stopped"))
         self.lbl_inj_status.setStyleSheet(f"color:{COLORS['dim']}")
 
     # ── Replay actions ────────────────────────────────────────────────────────
@@ -381,25 +385,29 @@ class InjectionTab(QWidget):
     def _load_replay_log(self):
         from core.log_parser import parse_log_file
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Log for Replay", "", "Log Files (*.csv *.log);;All (*)"
+            self, tr("inject.replay.openTitle"), "",
+            tr("inject.replay.fileFilter")
         )
         if not path:
             return
         try:
             self._replay_df = parse_log_file(path)
             self.lbl_replay_file.setText(
-                f"{path.split('/')[-1]}  ({len(self._replay_df)} frames)"
+                tr("inject.replay.loaded",
+                   name=path.split('/')[-1], n=len(self._replay_df))
             )
         except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
+            QMessageBox.critical(self, tr("inject.msgError.title"), str(e))
 
     def _start_replay(self):
         if self._replay_df is None or self._replay_df.empty:
-            QMessageBox.information(self, "No Log", "Load a log file first.")
+            QMessageBox.information(self, tr("inject.replay.noLogTitle"),
+                                    tr("inject.replay.msgLoad"))
             return
         bus = self._get_bus()
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("inject.msgNoBus.title"),
+                                    tr("inject.msgNoBus.text"))
             return
         from core.replay import ReplayWorker
         self._replay_worker = ReplayWorker(
@@ -410,7 +418,7 @@ class InjectionTab(QWidget):
         )
         self._replay_worker.tick.connect(self._on_replay_tick)
         self._replay_worker.loop_started.connect(
-            lambda n: self.lbl_replay_status.setText(f"Loop iteration {n}…")
+            lambda n: self.lbl_replay_status.setText(tr("inject.replay.loopIter", n=n))
         )
         self._replay_worker.finished.connect(self._on_replay_done)
         self._replay_worker.error.connect(
@@ -420,30 +428,32 @@ class InjectionTab(QWidget):
         self.replay_scrubber.setMaximum(max(1, n))
         self.replay_scrubber.setValue(0)
         self._replay_worker.start()
-        self.lbl_replay_status.setText("Replaying…")
+        self.lbl_replay_status.setText(tr("inject.replay.playing"))
         self.lbl_replay_status.setStyleSheet(f"color:{COLORS['amber']}")
 
     def _pause_replay(self):
         if self._replay_worker:
             if self._replay_worker.is_paused():
                 self._replay_worker.resume()
-                self.btn_replay_pause.setText("Pause")
+                self.btn_replay_pause.setText(tr("inject.replay.pause"))
             else:
                 self._replay_worker.pause()
-                self.btn_replay_pause.setText("Resume")
+                self.btn_replay_pause.setText(tr("inject.replay.resume"))
 
     def _stop_replay(self):
         if self._replay_worker:
             self._replay_worker.stop()
             self._replay_worker = None
-        self.lbl_replay_status.setText("Stopped.")
+        self.lbl_replay_status.setText(tr("inject.stopped"))
         self.lbl_replay_status.setStyleSheet(f"color:{COLORS['dim']}")
 
     def _on_replay_tick(self, current: int, total: int):
         self.replay_scrubber.blockSignals(True)
         self.replay_scrubber.setValue(current)
         self.replay_scrubber.blockSignals(False)
-        self.lbl_replay_status.setText(f"Replaying {current}/{total}…")
+        self.lbl_replay_status.setText(
+            tr("inject.replay.progress", current=current, total=total)
+        )
         self._state.replay_tick.emit(current, total)
 
     def _on_replay_scrub(self):
@@ -451,7 +461,7 @@ class InjectionTab(QWidget):
             self._replay_worker.seek(self.replay_scrubber.value())
 
     def _on_replay_done(self):
-        self.lbl_replay_status.setText("Replay complete.")
+        self.lbl_replay_status.setText(tr("inject.replay.complete"))
         self.lbl_replay_status.setStyleSheet(f"color:{COLORS['green']}")
 
     # ── Trigger actions ───────────────────────────────────────────────────────
@@ -488,11 +498,11 @@ class InjectionTab(QWidget):
     def _toggle_triggers(self):
         self._triggers_active = not self._triggers_active
         if self._triggers_active:
-            self.btn_trig_start.setText("Disable Triggers")
+            self.btn_trig_start.setText(tr("inject.trig.disable"))
             self.btn_trig_start.setStyleSheet(f"color:{COLORS['error']}")
             self._trigger_timer.start()
         else:
-            self.btn_trig_start.setText("Enable Triggers")
+            self.btn_trig_start.setText(tr("inject.trig.enable"))
             self.btn_trig_start.setStyleSheet("")
             self._trigger_timer.stop()
             try:
@@ -541,39 +551,35 @@ class InjectionTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(6)
 
-        lay.addWidget(QLabel("ACTUATOR SAFETY BOUNDARY SCANNER", font=mono_font(9)))
-        lay.addWidget(QLabel(
-            "Sweep a signal from min→max in steps. Aborts if watchdog ID "
-            "disappears (safety controller cut-out detected).",
-            font=mono_font(8),
-        ))
+        lay.addWidget(QLabel(tr("inject.safety.title"), font=mono_font(9)))
+        lay.addWidget(QLabel(tr("inject.safety.desc"), font=mono_font(8)))
 
-        cfg_grp = QGroupBox("SCAN CONFIGURATION")
+        cfg_grp = QGroupBox(tr("inject.safety.grp"))
         cg = QHBoxLayout(cfg_grp)
 
-        cg.addWidget(QLabel("Signal:"))
+        cg.addWidget(QLabel(tr("inject.signal_colon")))
         self.scan_sig_combo = QComboBox()
         self.scan_sig_combo.setFont(mono_font())
         cg.addWidget(self.scan_sig_combo, 1)
 
-        cg.addWidget(QLabel("Steps:"))
+        cg.addWidget(QLabel(tr("inject.safety.steps")))
         self.scan_steps_spin = QSpinBox()
         self.scan_steps_spin.setRange(2, 200)
         self.scan_steps_spin.setValue(50)
         cg.addWidget(self.scan_steps_spin)
 
-        cg.addWidget(QLabel("Delay(ms):"))
+        cg.addWidget(QLabel(tr("inject.safety.delay")))
         self.scan_delay_spin = QSpinBox()
         self.scan_delay_spin.setRange(10, 5000)
         self.scan_delay_spin.setValue(200)
         cg.addWidget(self.scan_delay_spin)
 
-        cg.addWidget(QLabel("Watchdog ID (hex):"))
+        cg.addWidget(QLabel(tr("inject.safety.watchdog")))
         self.scan_watchdog_edit = QLineEdit("000")
         self.scan_watchdog_edit.setFixedWidth(60)
         cg.addWidget(self.scan_watchdog_edit)
 
-        cg.addWidget(QLabel("WD timeout(ms):"))
+        cg.addWidget(QLabel(tr("inject.safety.wdTimeout")))
         self.scan_wd_timeout = QSpinBox()
         self.scan_wd_timeout.setRange(100, 5000)
         self.scan_wd_timeout.setValue(500)
@@ -582,10 +588,10 @@ class InjectionTab(QWidget):
         lay.addWidget(cfg_grp)
 
         btn_row = QHBoxLayout()
-        self.btn_scan_start = QPushButton("Start Scan")
+        self.btn_scan_start = QPushButton(tr("inject.safety.start"))
         self.btn_scan_start.setObjectName("btn_green")
         self.btn_scan_start.clicked.connect(self._start_safety_scan)
-        self.btn_scan_abort = QPushButton("Abort")
+        self.btn_scan_abort = QPushButton(tr("inject.safety.abort"))
         self.btn_scan_abort.clicked.connect(self._abort_safety_scan)
         self.btn_scan_abort.setEnabled(False)
         btn_row.addWidget(self.btn_scan_start)
@@ -622,7 +628,8 @@ class InjectionTab(QWidget):
     def _start_safety_scan(self):
         bus = self._get_bus()
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("inject.msgNoBus.title"),
+                                    tr("inject.msgNoBus.text"))
             return
         idx = self.scan_sig_combo.currentIndex()
         if idx < 0:
@@ -667,7 +674,7 @@ class InjectionTab(QWidget):
         if self._scan_worker:
             self._scan_worker.stop()
             self._scan_worker = None
-        self._scan_log_append("Scan aborted by user.")
+        self._scan_log_append(tr("inject.safety.aborted"))
         self.btn_scan_start.setEnabled(True)
         self.btn_scan_abort.setEnabled(False)
 
@@ -679,7 +686,7 @@ class InjectionTab(QWidget):
 
     def _on_scan_cutout(self, value: float, reason: str):
         self._scan_log_append(
-            f"⚠ SAFETY CUTOUT at value={value:.3f}  — {reason}"
+            tr("inject.safety.cutout", value=value, reason=reason)
         )
         self.scan_log.setStyleSheet(f"color:{COLORS['error']}")
         self._state.safety_cutout.emit(value, reason)
@@ -687,7 +694,7 @@ class InjectionTab(QWidget):
         self.btn_scan_abort.setEnabled(False)
 
     def _on_scan_finished(self):
-        self._scan_log_append("Scan complete — no cutout detected.")
+        self._scan_log_append(tr("inject.safety.done"))
         self.scan_log.setStyleSheet(f"color:{COLORS['green']}")
         self.btn_scan_start.setEnabled(True)
         self.btn_scan_abort.setEnabled(False)
@@ -707,16 +714,13 @@ class InjectionTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(6)
 
-        lay.addWidget(QLabel("FUZZ TESTING", font=mono_font(9)))
-        lay.addWidget(QLabel(
-            "Inject random / boundary / mutation payloads to an unknown message ID.",
-            font=mono_font(8),
-        ))
+        lay.addWidget(QLabel(tr("inject.fuzz.title"), font=mono_font(9)))
+        lay.addWidget(QLabel(tr("inject.fuzz.desc"), font=mono_font(8)))
 
-        cfg_grp = QGroupBox("FUZZ CONFIGURATION")
+        cfg_grp = QGroupBox(tr("inject.fuzz.grp"))
         cg = QHBoxLayout(cfg_grp)
 
-        cg.addWidget(QLabel("Target ID (hex):"))
+        cg.addWidget(QLabel(tr("inject.fuzz.targetId")))
         self.fuzz_id_edit = QLineEdit("000")
         self.fuzz_id_edit.setFixedWidth(70)
         cg.addWidget(self.fuzz_id_edit)
@@ -727,18 +731,18 @@ class InjectionTab(QWidget):
         self.fuzz_dlc_spin.setValue(8)
         cg.addWidget(self.fuzz_dlc_spin)
 
-        cg.addWidget(QLabel("Strategy:"))
+        cg.addWidget(QLabel(tr("inject.fuzz.strategy")))
         self.fuzz_strategy_combo = QComboBox()
         self.fuzz_strategy_combo.addItems(["boundary", "random", "mutation"])
         cg.addWidget(self.fuzz_strategy_combo)
 
-        cg.addWidget(QLabel("Rate (Hz):"))
+        cg.addWidget(QLabel(tr("inject.fuzz.rate")))
         self.fuzz_rate_spin = QDoubleSpinBox()
         self.fuzz_rate_spin.setRange(0.1, 100.0)
         self.fuzz_rate_spin.setValue(10.0)
         cg.addWidget(self.fuzz_rate_spin)
 
-        cg.addWidget(QLabel("Max iter (0=∞):"))
+        cg.addWidget(QLabel(tr("inject.fuzz.maxIter")))
         self.fuzz_maxiter_spin = QSpinBox()
         self.fuzz_maxiter_spin.setRange(0, 100000)
         self.fuzz_maxiter_spin.setValue(0)
@@ -747,16 +751,16 @@ class InjectionTab(QWidget):
         lay.addWidget(cfg_grp)
 
         btn_row = QHBoxLayout()
-        self.btn_fuzz_start = QPushButton("Start Fuzz")
+        self.btn_fuzz_start = QPushButton(tr("inject.fuzz.start"))
         self.btn_fuzz_start.setObjectName("btn_amber")
         self.btn_fuzz_start.clicked.connect(self._start_fuzz)
-        self.btn_fuzz_stop = QPushButton("Stop")
+        self.btn_fuzz_stop = QPushButton(tr("inject.btn.stop"))
         self.btn_fuzz_stop.clicked.connect(self._stop_fuzz)
         self.btn_fuzz_stop.setEnabled(False)
         btn_row.addWidget(self.btn_fuzz_start)
         btn_row.addWidget(self.btn_fuzz_stop)
         btn_row.addStretch()
-        self.lbl_fuzz_count = QLabel("0 sent")
+        self.lbl_fuzz_count = QLabel(tr("inject.fuzz.sentCount", n=0))
         self.lbl_fuzz_count.setFont(mono_font(8))
         btn_row.addWidget(self.lbl_fuzz_count)
         lay.addLayout(btn_row)
@@ -773,12 +777,14 @@ class InjectionTab(QWidget):
     def _start_fuzz(self):
         bus = self._get_bus()
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("inject.msgNoBus.title"),
+                                    tr("inject.msgNoBus.text"))
             return
         try:
             target_id = int(self.fuzz_id_edit.text().strip(), 16)
         except ValueError:
-            QMessageBox.warning(self, "Invalid ID", "Enter a valid hex CAN ID.")
+            QMessageBox.warning(self, tr("inject.fuzz.invalidId.title"),
+                                tr("inject.fuzz.invalidId.text"))
             return
 
         from core.fuzzer import FuzzWorker
@@ -792,7 +798,7 @@ class InjectionTab(QWidget):
         )
         self._fuzz_worker.hit.connect(self._on_fuzz_hit)
         self._fuzz_worker.progress.connect(
-            lambda n: self.lbl_fuzz_count.setText(f"{n} sent")
+            lambda n: self.lbl_fuzz_count.setText(tr("inject.fuzz.sentCount", n=n))
         )
         self._fuzz_worker.error.connect(lambda e: self._fuzz_log_append(f"ERROR: {e}"))
         self._fuzz_worker.finished.connect(self._on_fuzz_done)
@@ -811,7 +817,7 @@ class InjectionTab(QWidget):
         self._state.fuzz_running = False
         self.btn_fuzz_start.setEnabled(True)
         self.btn_fuzz_stop.setEnabled(False)
-        self._fuzz_log_append("Fuzz stopped.")
+        self._fuzz_log_append(tr("inject.fuzz.stopped"))
 
     def _on_fuzz_hit(self, id_hex: str, data: bytes, ts: float):
         hex_str = " ".join(f"{b:02X}" for b in data)
@@ -821,7 +827,7 @@ class InjectionTab(QWidget):
         self._state.fuzz_running = False
         self.btn_fuzz_start.setEnabled(True)
         self.btn_fuzz_stop.setEnabled(False)
-        self._fuzz_log_append("Fuzz complete.")
+        self._fuzz_log_append(tr("inject.fuzz.complete"))
 
     def _fuzz_log_append(self, msg: str):
         self._fuzz_log_lines.append(msg)
@@ -839,48 +845,44 @@ class InjectionTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(6)
 
-        lay.addWidget(QLabel(
-            "Build a sequence of INJECT / WAIT / ASSERT / RECORD steps and run it "
-            "against the live CAN bus.",
-            font=mono_font(8),
-        ))
+        lay.addWidget(QLabel(tr("inject.seq.desc"), font=mono_font(8)))
 
         # ── Step editor ───────────────────────────────────────────────────────
-        editor_grp = QGroupBox("ADD STEP")
+        editor_grp = QGroupBox(tr("inject.seq.addStep"))
         eg = QVBoxLayout(editor_grp)
 
         type_row = QHBoxLayout()
-        type_row.addWidget(QLabel("Type:", font=mono_font(8)))
+        type_row.addWidget(QLabel(tr("inject.seq.type"), font=mono_font(8)))
         self.seq_type = QComboBox()
         self.seq_type.addItems(["INJECT", "WAIT", "ASSERT", "RECORD"])
         self.seq_type.setFont(mono_font(8))
         type_row.addWidget(self.seq_type)
-        type_row.addWidget(QLabel("Label:", font=mono_font(8)))
+        type_row.addWidget(QLabel(tr("inject.trig.label"), font=mono_font(8)))
         self.seq_label = QLineEdit()
         self.seq_label.setFont(mono_font(8))
-        self.seq_label.setPlaceholderText("optional description")
+        self.seq_label.setPlaceholderText(tr("inject.seq.labelPh"))
         type_row.addWidget(self.seq_label, 1)
         eg.addLayout(type_row)
 
         param_row = QHBoxLayout()
-        param_row.addWidget(QLabel("Msg ID:", font=mono_font(8)))
+        param_row.addWidget(QLabel(tr("inject.seq.msgId"), font=mono_font(8)))
         self.seq_msg_id = QLineEdit("0A6")
         self.seq_msg_id.setFixedWidth(60)
         self.seq_msg_id.setFont(mono_font(8))
         param_row.addWidget(self.seq_msg_id)
-        param_row.addWidget(QLabel("Byte:", font=mono_font(8)))
+        param_row.addWidget(QLabel(tr("inject.trig.byte"), font=mono_font(8)))
         self.seq_byte = QSpinBox()
         self.seq_byte.setRange(0, 7)
         param_row.addWidget(self.seq_byte)
-        param_row.addWidget(QLabel("Value/Wait ms:", font=mono_font(8)))
+        param_row.addWidget(QLabel(tr("inject.seq.value"), font=mono_font(8)))
         self.seq_value = QSpinBox()
         self.seq_value.setRange(0, 65535)
         param_row.addWidget(self.seq_value)
-        param_row.addWidget(QLabel("Min:", font=mono_font(8)))
+        param_row.addWidget(QLabel(tr("inject.seq.min"), font=mono_font(8)))
         self.seq_min = QDoubleSpinBox()
         self.seq_min.setRange(-1e6, 1e6)
         param_row.addWidget(self.seq_min)
-        param_row.addWidget(QLabel("Max:", font=mono_font(8)))
+        param_row.addWidget(QLabel(tr("inject.seq.max"), font=mono_font(8)))
         self.seq_max = QDoubleSpinBox()
         self.seq_max.setRange(-1e6, 1e6)
         self.seq_max.setValue(255)
@@ -888,10 +890,10 @@ class InjectionTab(QWidget):
         eg.addLayout(param_row)
 
         btn_row = QHBoxLayout()
-        btn_add = QPushButton("+ Add Step")
+        btn_add = QPushButton(tr("inject.seq.add"))
         btn_add.setObjectName("btn_green")
         btn_add.clicked.connect(self._seq_add_step)
-        btn_del = QPushButton("Remove Selected")
+        btn_del = QPushButton(tr("inject.seq.remove"))
         btn_del.clicked.connect(self._seq_remove_step)
         btn_row.addWidget(btn_add)
         btn_row.addWidget(btn_del)
@@ -908,19 +910,19 @@ class InjectionTab(QWidget):
         self.seq_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.seq_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.seq_table.setMaximumHeight(180)
-        lay.addWidget(QLabel("SEQUENCE STEPS", font=mono_font(8)))
+        lay.addWidget(QLabel(tr("inject.seq.stepsTitle"), font=mono_font(8)))
         lay.addWidget(self.seq_table)
         self._seq_steps: list = []
 
         # ── Run controls ──────────────────────────────────────────────────────
         run_row = QHBoxLayout()
-        self.btn_seq_run  = QPushButton("▶  Run Sequence")
+        self.btn_seq_run  = QPushButton(tr("inject.seq.run"))
         self.btn_seq_run.setObjectName("btn_green")
         self.btn_seq_run.clicked.connect(self._seq_run)
-        self.btn_seq_stop = QPushButton("■  Stop")
+        self.btn_seq_stop = QPushButton(tr("inject.btn.seqStop"))
         self.btn_seq_stop.clicked.connect(self._seq_stop)
         self.btn_seq_stop.setEnabled(False)
-        self.btn_seq_clear_steps = QPushButton("Clear All Steps")
+        self.btn_seq_clear_steps = QPushButton(tr("inject.seq.clear"))
         self.btn_seq_clear_steps.clicked.connect(self._seq_clear)
         run_row.addWidget(self.btn_seq_run)
         run_row.addWidget(self.btn_seq_stop)
@@ -931,7 +933,7 @@ class InjectionTab(QWidget):
         self.seq_log = QTextEdit()
         self.seq_log.setReadOnly(True)
         self.seq_log.setFont(mono_font(8))
-        lay.addWidget(QLabel("RUN LOG", font=mono_font(8)))
+        lay.addWidget(QLabel(tr("inject.seq.runLog"), font=mono_font(8)))
         lay.addWidget(self.seq_log)
 
         self._seq_worker = None
@@ -989,10 +991,12 @@ class InjectionTab(QWidget):
     def _seq_run(self):
         bus = self._state.can_bus
         if bus is None:
-            QMessageBox.warning(self, "No Bus", "Connect CAN first.")
+            QMessageBox.warning(self, tr("inject.msgNoBus.title"),
+                                tr("inject.seq.msgConnect"))
             return
         if not self._seq_steps:
-            QMessageBox.information(self, "Empty", "Add steps first.")
+            QMessageBox.information(self, tr("inject.seq.emptyTitle"),
+                                    tr("inject.seq.msgEmpty"))
             return
         from core.test_sequence import TestSequenceWorker
         self._seq_worker = TestSequenceWorker(list(self._seq_steps), bus)

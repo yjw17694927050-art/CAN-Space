@@ -10,6 +10,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
+from core.i18n import tr
 
 
 _DIR_OPTIONS    = ["A→B", "B→A", "Both"]
@@ -42,7 +43,7 @@ class GatewayTab(QWidget):
         ll.setContentsMargins(4, 4, 4, 4)
         ll.setSpacing(6)
 
-        ll.addWidget(QLabel("CAN GATEWAY  (MitM bridge)", font=mono_font(9)))
+        ll.addWidget(QLabel(tr("gw.title"), font=mono_font(9)))
 
         # Bus A config
         ll.addWidget(self._bus_group("A", "a"))
@@ -51,11 +52,11 @@ class GatewayTab(QWidget):
 
         # Control buttons
         ctl = QHBoxLayout()
-        self.btn_start = QPushButton("START GATEWAY")
+        self.btn_start = QPushButton(tr("gw.start"))
         self.btn_start.setObjectName("btn_green")
         self.btn_start.setFont(mono_font(9))
         self.btn_start.clicked.connect(self._start)
-        self.btn_stop = QPushButton("STOP")
+        self.btn_stop = QPushButton(tr("gw.stop"))
         self.btn_stop.setFont(mono_font(9))
         self.btn_stop.clicked.connect(self._stop)
         self.btn_stop.setEnabled(False)
@@ -64,7 +65,7 @@ class GatewayTab(QWidget):
         ll.addLayout(ctl)
 
         # Stats
-        stats_grp = QGroupBox("STATISTICS")
+        stats_grp = QGroupBox(tr("gw.stats"))
         sg = QGridLayout(stats_grp)
         sg.setSpacing(4)
         self.lbl_fwd_ab  = QLabel("0")
@@ -77,76 +78,76 @@ class GatewayTab(QWidget):
                     self.lbl_mod, self.lbl_rate_ab, self.lbl_rate_ba]:
             lbl.setFont(mono_font(9, bold=True))
             lbl.setStyleSheet(f"color:{COLORS['green']}")
-        sg.addWidget(QLabel("A→B fwd:", font=mono_font(8)), 0, 0)
+        sg.addWidget(QLabel(tr("gw.fwd_ab"), font=mono_font(8)), 0, 0)
         sg.addWidget(self.lbl_fwd_ab, 0, 1)
-        sg.addWidget(QLabel("B→A fwd:", font=mono_font(8)), 1, 0)
+        sg.addWidget(QLabel(tr("gw.fwd_ba"), font=mono_font(8)), 1, 0)
         sg.addWidget(self.lbl_fwd_ba, 1, 1)
-        sg.addWidget(QLabel("Blocked:", font=mono_font(8)), 2, 0)
+        sg.addWidget(QLabel(tr("gw.blocked"), font=mono_font(8)), 2, 0)
         sg.addWidget(self.lbl_blocked, 2, 1)
-        sg.addWidget(QLabel("Modified:", font=mono_font(8)), 3, 0)
+        sg.addWidget(QLabel(tr("gw.modified"), font=mono_font(8)), 3, 0)
         sg.addWidget(self.lbl_mod, 3, 1)
-        sg.addWidget(QLabel("A→B rate:", font=mono_font(8)), 0, 2)
+        sg.addWidget(QLabel(tr("gw.rate_ab"), font=mono_font(8)), 0, 2)
         sg.addWidget(self.lbl_rate_ab, 0, 3)
-        sg.addWidget(QLabel("B→A rate:", font=mono_font(8)), 1, 2)
+        sg.addWidget(QLabel(tr("gw.rate_ba"), font=mono_font(8)), 1, 2)
         sg.addWidget(self.lbl_rate_ba, 1, 3)
         ll.addWidget(stats_grp)
 
         # Rule editor
-        rule_grp = QGroupBox("FILTER / MODIFY RULE")
+        rule_grp = QGroupBox(tr("gw.rule_grp"))
         rg = QGridLayout(rule_grp)
         rg.setSpacing(4)
 
-        rg.addWidget(QLabel("ID (hex, blank=any):", font=mono_font(8)), 0, 0)
+        rg.addWidget(QLabel(tr("gw.rule_id_label"), font=mono_font(8)), 0, 0)
         self.rule_id = QLineEdit()
         self.rule_id.setPlaceholderText("1A0")
         self.rule_id.setFont(mono_font())
         rg.addWidget(self.rule_id, 0, 1)
 
-        rg.addWidget(QLabel("Direction:", font=mono_font(8)), 1, 0)
+        rg.addWidget(QLabel(tr("gw.rule_dir_label"), font=mono_font(8)), 1, 0)
         self.rule_dir = QComboBox()
         self.rule_dir.addItems(_DIR_OPTIONS)
         self.rule_dir.setFont(mono_font(8))
         rg.addWidget(self.rule_dir, 1, 1)
 
-        rg.addWidget(QLabel("Action:", font=mono_font(8)), 2, 0)
+        rg.addWidget(QLabel(tr("gw.rule_action_label"), font=mono_font(8)), 2, 0)
         self.rule_action = QComboBox()
         self.rule_action.addItems(_ACTION_OPTIONS)
         self.rule_action.setFont(mono_font(8))
         self.rule_action.currentTextChanged.connect(self._on_action_changed)
         rg.addWidget(self.rule_action, 2, 1)
 
-        rg.addWidget(QLabel("Byte idx (Modify):", font=mono_font(8)), 3, 0)
+        rg.addWidget(QLabel(tr("gw.rule_byte_label"), font=mono_font(8)), 3, 0)
         self.rule_byte = QSpinBox()
         self.rule_byte.setRange(0, 7)
         self.rule_byte.setFont(mono_font(8))
         self.rule_byte.setEnabled(False)
         rg.addWidget(self.rule_byte, 3, 1)
 
-        rg.addWidget(QLabel("New value (hex):", font=mono_font(8)), 4, 0)
+        rg.addWidget(QLabel(tr("gw.rule_val_label"), font=mono_font(8)), 4, 0)
         self.rule_val = QLineEdit("00")
         self.rule_val.setFont(mono_font())
         self.rule_val.setEnabled(False)
         rg.addWidget(self.rule_val, 4, 1)
 
-        rg.addWidget(QLabel("Rewrite ID (optional):", font=mono_font(8)), 5, 0)
+        rg.addWidget(QLabel(tr("gw.rule_newid_label"), font=mono_font(8)), 5, 0)
         self.rule_new_id = QLineEdit()
-        self.rule_new_id.setPlaceholderText("leave blank to keep")
+        self.rule_new_id.setPlaceholderText(tr("gw.ph_leave_blank"))
         self.rule_new_id.setFont(mono_font())
         rg.addWidget(self.rule_new_id, 5, 1)
 
-        rg.addWidget(QLabel("Label:", font=mono_font(8)), 6, 0)
+        rg.addWidget(QLabel(tr("gw.rule_label_label"), font=mono_font(8)), 6, 0)
         self.rule_label = QLineEdit()
         self.rule_label.setFont(mono_font())
         rg.addWidget(self.rule_label, 6, 1)
 
-        btn_add = QPushButton("Add Rule")
+        btn_add = QPushButton(tr("gw.rule_add"))
         btn_add.setObjectName("btn_green")
         btn_add.clicked.connect(self._add_rule)
         rg.addWidget(btn_add, 7, 0, 1, 2)
         ll.addWidget(rule_grp)
 
         # Rules table
-        ll.addWidget(QLabel("ACTIVE RULES  (first match wins)", font=mono_font(8)))
+        ll.addWidget(QLabel(tr("gw.active_rules"), font=mono_font(8)))
         self.rules_table = QTableWidget(0, 6)
         self.rules_table.setHorizontalHeaderLabels(["ID", "Dir", "Action", "Byte", "Val", "Del"])
         self.rules_table.setFont(mono_font(8))
@@ -167,18 +168,18 @@ class GatewayTab(QWidget):
         rl.setSpacing(4)
 
         hdr = QHBoxLayout()
-        hdr.addWidget(QLabel("FRAME LOG", font=mono_font(9)))
+        hdr.addWidget(QLabel(tr("gw.frame_log"), font=mono_font(9)))
         hdr.addStretch()
-        self.chk_log_fwd   = QCheckBox("Forwarded")
+        self.chk_log_fwd   = QCheckBox(tr("gw.log_forwarded"))
         self.chk_log_fwd.setChecked(True)
         self.chk_log_fwd.setFont(mono_font(8))
-        self.chk_log_block = QCheckBox("Blocked")
+        self.chk_log_block = QCheckBox(tr("gw.log_blocked"))
         self.chk_log_block.setChecked(True)
         self.chk_log_block.setFont(mono_font(8))
-        self.chk_log_mod   = QCheckBox("Modified")
+        self.chk_log_mod   = QCheckBox(tr("gw.log_modified"))
         self.chk_log_mod.setChecked(True)
         self.chk_log_mod.setFont(mono_font(8))
-        btn_clear = QPushButton("Clear")
+        btn_clear = QPushButton(tr("gw.clear"))
         btn_clear.setFont(mono_font(8))
         btn_clear.clicked.connect(self._clear_log)
         for w in [self.chk_log_fwd, self.chk_log_block, self.chk_log_mod, btn_clear]:
@@ -199,24 +200,24 @@ class GatewayTab(QWidget):
         root.addWidget(splitter)
 
     def _bus_group(self, label: str, suffix: str) -> QGroupBox:
-        grp = QGroupBox(f"BUS {label}")
+        grp = QGroupBox(tr("gw.bus", label=label))
         g   = QGridLayout(grp)
         g.setSpacing(4)
 
-        g.addWidget(QLabel("Interface:", font=mono_font(8)), 0, 0)
+        g.addWidget(QLabel(tr("gw.iface"), font=mono_font(8)), 0, 0)
         combo = QComboBox()
         combo.addItems(_IFACE_OPTIONS)
         combo.setFont(mono_font(8))
         setattr(self, f"iface_{suffix}", combo)
         g.addWidget(combo, 0, 1)
 
-        g.addWidget(QLabel("Channel:", font=mono_font(8)), 1, 0)
+        g.addWidget(QLabel(tr("gw.channel"), font=mono_font(8)), 1, 0)
         chan = QLineEdit("can0" if suffix == "a" else "can1")
         chan.setFont(mono_font(8))
         setattr(self, f"chan_{suffix}", chan)
         g.addWidget(chan, 1, 1)
 
-        g.addWidget(QLabel("Bitrate:", font=mono_font(8)), 2, 0)
+        g.addWidget(QLabel(tr("gw.bitrate"), font=mono_font(8)), 2, 0)
         br = QSpinBox()
         br.setRange(10_000, 5_000_000)
         br.setSingleStep(50_000)

@@ -9,6 +9,7 @@ from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.obd2_pids import PID_TABLE, DEFAULT_PIDS
+from core.i18n import tr
 
 
 class _GaugeWidget(QWidget):
@@ -85,15 +86,15 @@ class OBDDashboardTab(QWidget):
         ll.setContentsMargins(4, 4, 4, 4)
         ll.setSpacing(6)
 
-        ll.addWidget(QLabel("OBD-II PIDs", font=mono_font(9)))
+        ll.addWidget(QLabel(tr("obd.title_pids"), font=mono_font(9)))
 
-        self.lbl_can = QLabel("CAN: disconnected")
+        self.lbl_can = QLabel(tr("obd.can_disconnected"))
         self.lbl_can.setFont(mono_font(8))
         self.lbl_can.setStyleSheet(f"color:{COLORS['dim']}")
         ll.addWidget(self.lbl_can)
 
         rate_row = QHBoxLayout()
-        rate_row.addWidget(QLabel("Rate (ms):", font=mono_font(8)))
+        rate_row.addWidget(QLabel(tr("obd.rate"), font=mono_font(8)))
         self.rate_spin = QSpinBox()
         self.rate_spin.setRange(50, 2000)
         self.rate_spin.setSingleStep(50)
@@ -102,7 +103,7 @@ class OBDDashboardTab(QWidget):
         rate_row.addWidget(self.rate_spin)
         ll.addLayout(rate_row)
 
-        ll.addWidget(QLabel("Select PIDs:", font=mono_font(8)))
+        ll.addWidget(QLabel(tr("obd.select_pids"), font=mono_font(8)))
         self.pid_list = QListWidget()
         self.pid_list.setFont(mono_font(8))
         self.pid_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
@@ -114,18 +115,18 @@ class OBDDashboardTab(QWidget):
                 item.setSelected(True)
         ll.addWidget(self.pid_list)
 
-        self.btn_discover = QPushButton("Auto-discover…")
+        self.btn_discover = QPushButton(tr("obd.btn_discover"))
         self.btn_discover.setFont(mono_font(8))
         self.btn_discover.clicked.connect(self._discover_pids)
         ll.addWidget(self.btn_discover)
 
-        self.btn_start = QPushButton("START")
+        self.btn_start = QPushButton(tr("obd.btn_start"))
         self.btn_start.setObjectName("btn_green")
         self.btn_start.setFont(mono_font(9))
         self.btn_start.clicked.connect(self._start_polling)
         ll.addWidget(self.btn_start)
 
-        self.btn_stop = QPushButton("STOP")
+        self.btn_stop = QPushButton(tr("obd.btn_stop"))
         self.btn_stop.setFont(mono_font(9))
         self.btn_stop.clicked.connect(self._stop_polling)
         self.btn_stop.setEnabled(False)
@@ -149,11 +150,11 @@ class OBDDashboardTab(QWidget):
     def _start_polling(self):
         bus = self._state.can_bus
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("obd.msgNoBus.title"), tr("obd.msgNoBus.text"))
             return
         pids = self._selected_pids()
         if not pids:
-            QMessageBox.information(self, "No PIDs", "Select at least one PID.")
+            QMessageBox.information(self, tr("obd.msgNoPids.title"), tr("obd.msgNoPids.text"))
             return
 
         self._stop_polling()
@@ -178,19 +179,19 @@ class OBDDashboardTab(QWidget):
     def _discover_pids(self):
         bus = self._state.can_bus
         if bus is None:
-            QMessageBox.information(self, "No Bus", "Connect CAN bus first.")
+            QMessageBox.information(self, tr("obd.msgNoBus.title"), tr("obd.msgNoBus.text"))
             return
         from core.obd2_poller import OBD2Poller
         # Store on self: a local QThread is garbage-collected when this method
         # returns, crashing with "QThread: Destroyed while thread is running".
         self._discover_worker = OBD2Poller(bus=bus, pids=[], discover_only=True)
         self._discover_worker.pids_discovered.connect(self._on_pids_discovered)
-        self._discover_worker.error.connect(lambda e: QMessageBox.warning(self, "Discover Error", e))
+        self._discover_worker.error.connect(lambda e: QMessageBox.warning(self, tr("obd.msgDiscErr.title"), e))
         self._discover_worker.start()
-        self.btn_discover.setText("Discovering…")
+        self.btn_discover.setText(tr("obd.discovering"))
         self.btn_discover.setEnabled(False)
         self._discover_worker.finished.connect(lambda: (
-            self.btn_discover.setText("Auto-discover…"),
+            self.btn_discover.setText(tr("obd.btn_discover")),
             self.btn_discover.setEnabled(True),
         ))
 
@@ -219,9 +220,9 @@ class OBDDashboardTab(QWidget):
 
     def _on_can_status(self, connected: bool):
         if connected:
-            self.lbl_can.setText("CAN: connected")
+            self.lbl_can.setText(tr("obd.can_connected"))
             self.lbl_can.setStyleSheet(f"color:{COLORS['green']}")
         else:
-            self.lbl_can.setText("CAN: disconnected")
+            self.lbl_can.setText(tr("obd.can_disconnected"))
             self.lbl_can.setStyleSheet(f"color:{COLORS['dim']}")
             self._stop_polling()

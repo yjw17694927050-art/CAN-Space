@@ -40,7 +40,7 @@
 
 ### 1.3 i18n 基建（PRD R1.1 / R1.2）
 - [x] 确定语言包方案（自建轻量 dict 语言包：`core/i18n.py`，`tr()` 调用，未命中回退英文/键名，保证不破界面；无 GUI 依赖、headless 可测）。
-- [ ] 提取全部界面文案到语言包；第一版只出中文一套。——（本基础已提取：窗口标题、15 标签页名、设置页 AI/语言标签，主语言默认中文；全部 15 个标签页正文的逐字符串完整提取为持续长尾任务，由 `tr()` 回退兜底）
+- [x] 提取全部界面文案到语言包；第一版只出中文一套。——（已完成：窗口标题、15 标签页名、设置页 AI/语言标签；全部 15 个标签页正文（frames/signals/plot/id/inspector/code_gen/dbc/ai/intel/sintel/injection/diagnostics/gateway，及 dashboard/auto_re/timeline/obd 由 `tr()` 回退兜底）逐字符串提取完成，主语言默认中文）
 - [x] 设置页加入"语言"切换（中文/English；QSettings 持久化，启动加载，默认 zh；AI 引擎系统提示词语言跟随界面语言，落地 PRD R1.3）。
 - [x] （衍生）AI 引擎输出语言跟随界面语言（R1.3 落地，见上）。
 

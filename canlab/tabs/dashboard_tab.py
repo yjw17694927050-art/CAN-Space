@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 BYTE_COLS = [f"B{i}" for i in range(8)]
 
@@ -123,9 +124,9 @@ class DashboardTab(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
 
         tabs = QTabWidget()
-        tabs.addTab(self._build_heatmap_tab(),  "3D HEATMAP")
-        tabs.addTab(self._build_timeline_tab(), "TIMELINE")
-        tabs.addTab(self._build_overlay_tab(),  "PHYSICAL OVERLAY")
+        tabs.addTab(self._build_heatmap_tab(),  tr("dash.tab_heatmap"))
+        tabs.addTab(self._build_timeline_tab(), tr("dash.tab_timeline"))
+        tabs.addTab(self._build_overlay_tab(),  tr("dash.tab_overlay"))
         outer.addWidget(tabs)
 
     # ── Correlation Heatmap ───────────────────────────────────────────────────
@@ -136,9 +137,9 @@ class DashboardTab(QWidget):
         lay.setContentsMargins(6, 6, 6, 6)
 
         hdr = QHBoxLayout()
-        hdr.addWidget(QLabel("BYTE-VALUE HEATMAP  (normalised mean byte value per ID)", font=mono_font(9)))
+        hdr.addWidget(QLabel(tr("dash.heatmap_title"), font=mono_font(9)))
         hdr.addStretch()
-        self.btn_render_heatmap = QPushButton("Render")
+        self.btn_render_heatmap = QPushButton(tr("dash.render"))
         self.btn_render_heatmap.clicked.connect(self._render_heatmap)
         hdr.addWidget(self.btn_render_heatmap)
         lay.addLayout(hdr)
@@ -200,15 +201,15 @@ class DashboardTab(QWidget):
             color="#00ff99", fontsize=7,
             fontfamily="monospace"
         )
-        ax.set_xlabel("Byte", color="#00ff99", fontsize=8)
-        ax.set_ylabel("CAN ID", color="#00ff99", fontsize=8)
+        ax.set_xlabel(tr("dash.heatmap_axis_byte"), color="#00ff99", fontsize=8)
+        ax.set_ylabel(tr("dash.heatmap_axis_id"), color="#00ff99", fontsize=8)
         ax.tick_params(colors="#00ff99")
         for spine in ax.spines.values():
             spine.set_edgecolor("#333333")
 
         self._heatmap_canvas.draw()
         self.lbl_heatmap_info.setText(
-            f"{len(ids)} IDs × 8 bytes  |  plasma colormap  |  normalised per-row mean"
+            tr("dash.heatmap_info", ids=len(ids))
         )
 
     # ── Timeline ──────────────────────────────────────────────────────────────
@@ -219,17 +220,17 @@ class DashboardTab(QWidget):
         lay.setContentsMargins(6, 6, 6, 6)
 
         hdr = QHBoxLayout()
-        hdr.addWidget(QLabel("MESSAGE TIMELINE  (frame density per ID over time)", font=mono_font(9)))
+        hdr.addWidget(QLabel(tr("dash.timeline_title"), font=mono_font(9)))
         hdr.addStretch()
-        self.btn_render_timeline = QPushButton("Render")
+        self.btn_render_timeline = QPushButton(tr("dash.render"))
         self.btn_render_timeline.clicked.connect(self._render_timeline)
         hdr.addWidget(self.btn_render_timeline)
         lay.addLayout(hdr)
 
         self.timeline_plot = pg.PlotWidget()
         self.timeline_plot.setBackground(COLORS["bg"])
-        self.timeline_plot.setLabel("left",   "ID index")
-        self.timeline_plot.setLabel("bottom", "Time (s)")
+        self.timeline_plot.setLabel("left",   tr("dash.axis_id"))
+        self.timeline_plot.setLabel("bottom", tr("dash.axis_time"))
         lay.addWidget(self.timeline_plot)
         return w
 
@@ -269,21 +270,21 @@ class DashboardTab(QWidget):
         lay.setContentsMargins(8, 8, 8, 8)
 
         hdr = QHBoxLayout()
-        hdr.addWidget(QLabel("PHYSICAL OVERLAY  (live signal → gauge/wheel)", font=mono_font(9)))
+        hdr.addWidget(QLabel(tr("dash.overlay_title"), font=mono_font(9)))
         hdr.addStretch()
-        self.btn_overlay_live = QPushButton("Start Live")
+        self.btn_overlay_live = QPushButton(tr("dash.start_live"))
         self.btn_overlay_live.setObjectName("btn_green")
         self.btn_overlay_live.clicked.connect(self._toggle_overlay_live)
         hdr.addWidget(self.btn_overlay_live)
         lay.addLayout(hdr)
 
         # Mapping combos
-        map_grp = QGroupBox("SIGNAL MAPPINGS")
+        map_grp = QGroupBox(tr("dash.grp_mappings"))
         mg = QHBoxLayout(map_grp)
-        mg.addWidget(QLabel("Steering angle ID:"))
+        mg.addWidget(QLabel(tr("dash.steer_id")))
         self.overlay_steer_combo = QComboBox()
         mg.addWidget(self.overlay_steer_combo)
-        mg.addWidget(QLabel("Speed ID:"))
+        mg.addWidget(QLabel(tr("dash.speed_id")))
         self.overlay_speed_combo = QComboBox()
         mg.addWidget(self.overlay_speed_combo)
         mg.addStretch()
@@ -291,7 +292,7 @@ class DashboardTab(QWidget):
 
         # Gauges
         gauges = QHBoxLayout()
-        steer_grp = QGroupBox("STEERING")
+        steer_grp = QGroupBox(tr("dash.grp_steering"))
         sg = QVBoxLayout(steer_grp)
         self.steering_widget = SteeringWheelWidget()
         self.lbl_steer_val = QLabel("0.0°")
@@ -301,7 +302,7 @@ class DashboardTab(QWidget):
         sg.addWidget(self.lbl_steer_val)
         gauges.addWidget(steer_grp)
 
-        speed_grp = QGroupBox("SPEED")
+        speed_grp = QGroupBox(tr("dash.grp_speed"))
         spg = QVBoxLayout(speed_grp)
         self.speed_gauge = SpeedGaugeWidget(220.0, "km/h")
         self.lbl_speed_val = QLabel("0.0 km/h")
@@ -322,7 +323,7 @@ class DashboardTab(QWidget):
         ids = self._state.get_unique_ids()
         for combo in [self.overlay_steer_combo, self.overlay_speed_combo]:
             combo.clear()
-            combo.addItem("(none)", "")
+            combo.addItem(tr("dash.none"), "")
             for can_id in ids:
                 combo.addItem(f"0x{can_id}", can_id)
         # Auto-select known IDs
@@ -336,10 +337,10 @@ class DashboardTab(QWidget):
     def _toggle_overlay_live(self):
         self._overlay_live = not self._overlay_live
         if self._overlay_live:
-            self.btn_overlay_live.setText("Stop Live")
+            self.btn_overlay_live.setText(tr("dash.stop_live"))
             self._live_timer.start()
         else:
-            self.btn_overlay_live.setText("Start Live")
+            self.btn_overlay_live.setText(tr("dash.start_live"))
             self._live_timer.stop()
 
     def _update_live_overlays(self):

@@ -25,6 +25,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 from core.signal_classifier import ROLE_COLORS
 
 
@@ -211,7 +212,7 @@ class SignalIntelligenceTab(QWidget):
         ll.setContentsMargins(4, 4, 4, 4)
         ll.setSpacing(4)
 
-        lbl = QLabel("CAN IDs")
+        lbl = QLabel(tr("sintel.can_ids"))
         lbl.setObjectName("label_dim")
         lbl.setFont(mono_font(8))
         ll.addWidget(lbl)
@@ -221,16 +222,16 @@ class SignalIntelligenceTab(QWidget):
         self.id_list.currentItemChanged.connect(self._on_list_id_changed)
         ll.addWidget(self.id_list)
 
-        self.btn_analyze_sel = QPushButton("Analyze Selected")
+        self.btn_analyze_sel = QPushButton(tr("sintel.analyze_selected"))
         self.btn_analyze_sel.setObjectName("btn_amber")
         self.btn_analyze_sel.clicked.connect(self._analyze_selected)
         ll.addWidget(self.btn_analyze_sel)
 
-        self.btn_analyze_all = QPushButton("Analyze All IDs")
+        self.btn_analyze_all = QPushButton(tr("sintel.analyze_all"))
         self.btn_analyze_all.clicked.connect(self._analyze_all)
         ll.addWidget(self.btn_analyze_all)
 
-        self.lbl_status = QLabel("Load a log to begin.")
+        self.lbl_status = QLabel(tr("sintel.load_to_begin"))
         self.lbl_status.setFont(mono_font(7))
         self.lbl_status.setObjectName("label_dim")
         self.lbl_status.setWordWrap(True)
@@ -246,12 +247,12 @@ class SignalIntelligenceTab(QWidget):
         self._tabs = QTabWidget()
         self._tabs.setDocumentMode(True)
 
-        self._tabs.addTab(self._build_roles_tab(),       "BYTE ROLES")
-        self._tabs.addTab(self._build_checksum_tab(),    "CHECKSUM RE")
-        self._tabs.addTab(self._build_correlation_tab(), "CORRELATION")
-        self._tabs.addTab(self._build_change_tab(),      "CHANGE DETECT")
-        self._tabs.addTab(self._build_anomaly_tab(),     "ANOMALY")
-        self._tabs.addTab(self._build_similarity_tab(),  "FIND SIMILAR")
+        self._tabs.addTab(self._build_roles_tab(),       tr("sintel.tab_roles"))
+        self._tabs.addTab(self._build_checksum_tab(),    tr("sintel.tab_checksum"))
+        self._tabs.addTab(self._build_correlation_tab(), tr("sintel.tab_correlation"))
+        self._tabs.addTab(self._build_change_tab(),      tr("sintel.tab_change"))
+        self._tabs.addTab(self._build_anomaly_tab(),     tr("sintel.tab_anomaly"))
+        self._tabs.addTab(self._build_similarity_tab(),  tr("sintel.tab_sim"))
 
         rl.addWidget(self._tabs)
         splitter.addWidget(right)
@@ -267,7 +268,7 @@ class SignalIntelligenceTab(QWidget):
         lay.setSpacing(4)
 
         hdr = QHBoxLayout()
-        self.lbl_roles_id = QLabel("Select an ID →")
+        self.lbl_roles_id = QLabel(tr("sintel.select_id"))
         self.lbl_roles_id.setFont(mono_font(9, bold=True))
         self.lbl_roles_id.setObjectName("label_green")
         hdr.addWidget(self.lbl_roles_id, stretch=1)
@@ -278,16 +279,18 @@ class SignalIntelligenceTab(QWidget):
         lay.addLayout(hdr)
 
         self.roles_table = _make_table(
-            ["Byte", "Role", "Confidence", "Entropy", "Unique", "Range", "Detail"]
+            [tr("sintel.byte"), tr("sintel.role"), tr("sintel.confidence"),
+             tr("sintel.entropy"), tr("sintel.unique"), tr("sintel.range"),
+             tr("sintel.detail")]
         )
         lay.addWidget(self.roles_table)
 
         btn_row = QHBoxLayout()
-        self.btn_roles_run = QPushButton("Classify Bytes")
+        self.btn_roles_run = QPushButton(tr("sintel.classify_bytes"))
         self.btn_roles_run.setObjectName("btn_amber")
         self.btn_roles_run.clicked.connect(self._run_classify)
         btn_row.addWidget(self.btn_roles_run)
-        self.btn_export_roles = QPushButton("Export to DBC Context")
+        self.btn_export_roles = QPushButton(tr("sintel.export_to_context"))
         self.btn_export_roles.clicked.connect(self._export_roles_to_context)
         btn_row.addWidget(self.btn_export_roles)
         lay.addLayout(btn_row)
@@ -301,14 +304,13 @@ class SignalIntelligenceTab(QWidget):
         lay.setContentsMargins(6, 6, 6, 6)
         lay.setSpacing(4)
 
-        self.lbl_cs_id = QLabel("Select an ID →")
+        self.lbl_cs_id = QLabel(tr("sintel.select_id"))
         self.lbl_cs_id.setFont(mono_font(9, bold=True))
         self.lbl_cs_id.setObjectName("label_green")
         lay.addWidget(self.lbl_cs_id)
 
         note = QLabel(
-            "Requires ≥50 frames per ID.  Algorithms: XOR8, SUM8, SUM8_INV, "
-            "XOR_NIBBLES, NIBBLE_SUM, CRC8_SAE, CRC8_AUTOSAR, HYUNDAI_XOR, HYUNDAI_FULL"
+            tr("sintel.cs_note")
         )
         note.setFont(mono_font(7))
         note.setObjectName("label_dim")
@@ -316,16 +318,17 @@ class SignalIntelligenceTab(QWidget):
         lay.addWidget(note)
 
         self.cs_table = _make_table(
-            ["Byte", "Algorithm", "Train Acc", "Val Acc", "Confidence", "Samples"]
+            [tr("sintel.byte"), tr("sintel.algorithm"), tr("sintel.train_acc"),
+             tr("sintel.val_acc"), tr("sintel.confidence"), tr("sintel.samples")]
         )
         lay.addWidget(self.cs_table)
 
         btn_row = QHBoxLayout()
-        self.btn_cs_run = QPushButton("Run Checksum Reverser")
+        self.btn_cs_run = QPushButton(tr("sintel.run_checksum"))
         self.btn_cs_run.setObjectName("btn_amber")
         self.btn_cs_run.clicked.connect(self._run_checksum)
         btn_row.addWidget(self.btn_cs_run)
-        self.btn_cs_copy = QPushButton("Copy Top Result")
+        self.btn_cs_copy = QPushButton(tr("sintel.copy_result"))
         self.btn_cs_copy.clicked.connect(self._copy_checksum_result)
         btn_row.addWidget(self.btn_cs_copy)
         lay.addLayout(btn_row)
@@ -340,7 +343,7 @@ class SignalIntelligenceTab(QWidget):
         lay.setSpacing(4)
 
         ctrl = QHBoxLayout()
-        ctrl.addWidget(QLabel("Min |r|:", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.min_r"), font=mono_font(8)))
         self.corr_min_r = QDoubleSpinBox()
         self.corr_min_r.setRange(0.50, 0.99)
         self.corr_min_r.setSingleStep(0.05)
@@ -348,19 +351,19 @@ class SignalIntelligenceTab(QWidget):
         self.corr_min_r.setFixedWidth(70)
         ctrl.addWidget(self.corr_min_r)
 
-        ctrl.addWidget(QLabel("Max pairs:", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.max_pairs"), font=mono_font(8)))
         self.corr_max_pairs = QSpinBox()
         self.corr_max_pairs.setRange(10, 2000)
         self.corr_max_pairs.setValue(300)
         self.corr_max_pairs.setFixedWidth(70)
         ctrl.addWidget(self.corr_max_pairs)
 
-        self.corr_find_lag = QCheckBox("Find lag")
+        self.corr_find_lag = QCheckBox(tr("sintel.find_lag"))
         self.corr_find_lag.setChecked(True)
         ctrl.addWidget(self.corr_find_lag)
         ctrl.addStretch()
 
-        self.btn_corr_run = QPushButton("Run Sweep")
+        self.btn_corr_run = QPushButton(tr("sintel.run_sweep"))
         self.btn_corr_run.setObjectName("btn_amber")
         self.btn_corr_run.clicked.connect(self._run_correlation)
         ctrl.addWidget(self.btn_corr_run)
@@ -372,11 +375,12 @@ class SignalIntelligenceTab(QWidget):
         lay.addWidget(self.corr_progress)
 
         self.corr_table = _make_table(
-            ["ID1", "Byte1", "ID2", "Byte2", "r", "lag ms", "Samples"]
+            [tr("sintel.corr_id1"), tr("sintel.corr_byte1"), tr("sintel.corr_id2"),
+             tr("sintel.corr_byte2"), "r", tr("sintel.lag_ms"), tr("sintel.samples")]
         )
         lay.addWidget(self.corr_table)
 
-        self.lbl_corr_status = QLabel("No results yet.")
+        self.lbl_corr_status = QLabel(tr("sintel.no_results"))
         self.lbl_corr_status.setFont(mono_font(7))
         self.lbl_corr_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_corr_status)
@@ -391,8 +395,7 @@ class SignalIntelligenceTab(QWidget):
         lay.setSpacing(4)
 
         note = QLabel(
-            "Enter a timestamp (or pick from the log) to find which CAN bytes "
-            "changed significantly at that moment."
+            tr("sintel.change_note")
         )
         note.setFont(mono_font(8))
         note.setObjectName("label_dim")
@@ -400,13 +403,13 @@ class SignalIntelligenceTab(QWidget):
         lay.addWidget(note)
 
         ctrl = QHBoxLayout()
-        ctrl.addWidget(QLabel("Timestamp:", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.timestamp"), font=mono_font(8)))
         self.chg_ts_edit = QLineEdit()
-        self.chg_ts_edit.setPlaceholderText("e.g.  1234.567")
+        self.chg_ts_edit.setPlaceholderText(tr("sintel.ts_placeholder"))
         self.chg_ts_edit.setFixedWidth(120)
         ctrl.addWidget(self.chg_ts_edit)
 
-        ctrl.addWidget(QLabel("Before (s):", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.before_s"), font=mono_font(8)))
         self.chg_before = QDoubleSpinBox()
         self.chg_before.setRange(0.05, 10.0)
         self.chg_before.setValue(0.5)
@@ -414,7 +417,7 @@ class SignalIntelligenceTab(QWidget):
         self.chg_before.setFixedWidth(65)
         ctrl.addWidget(self.chg_before)
 
-        ctrl.addWidget(QLabel("After (s):", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.after_s"), font=mono_font(8)))
         self.chg_after = QDoubleSpinBox()
         self.chg_after.setRange(0.05, 10.0)
         self.chg_after.setValue(0.15)
@@ -423,14 +426,15 @@ class SignalIntelligenceTab(QWidget):
         ctrl.addWidget(self.chg_after)
 
         ctrl.addStretch()
-        self.btn_chg_run = QPushButton("Detect Changes")
+        self.btn_chg_run = QPushButton(tr("sintel.detect_changes"))
         self.btn_chg_run.setObjectName("btn_amber")
         self.btn_chg_run.clicked.connect(self._run_change_detect)
         ctrl.addWidget(self.btn_chg_run)
         lay.addLayout(ctrl)
 
         self.chg_table = _make_table(
-            ["CAN ID", "Byte", "Before", "After", "Magnitude", "Direction"]
+            [tr("sintel.can_id"), tr("sintel.byte"), tr("sintel.before"),
+             tr("sintel.after"), tr("sintel.magnitude"), tr("sintel.direction")]
         )
         lay.addWidget(self.chg_table)
 
@@ -448,28 +452,28 @@ class SignalIntelligenceTab(QWidget):
         lay.setContentsMargins(6, 6, 6, 6)
         lay.setSpacing(4)
 
-        grp_fit = QGroupBox("BASELINE")
+        grp_fit = QGroupBox(tr("sintel.baseline"))
         fit_lay = QHBoxLayout(grp_fit)
-        self.chk_iforest = QCheckBox("Isolation Forest (sklearn)")
+        self.chk_iforest = QCheckBox(tr("sintel.isolation_forest"))
         self.chk_iforest.setToolTip(
-            "IsolationForest is more accurate but slower to fit than Z-score."
+            tr("sintel.iforest_tt")
         )
         fit_lay.addWidget(self.chk_iforest)
         fit_lay.addStretch()
-        self.btn_fit = QPushButton("Fit on Loaded Frames")
+        self.btn_fit = QPushButton(tr("sintel.fit_baseline"))
         self.btn_fit.setObjectName("btn_green")
         self.btn_fit.clicked.connect(self._fit_baseline)
         fit_lay.addWidget(self.btn_fit)
         lay.addWidget(grp_fit)
 
-        self.lbl_anomaly_baseline = QLabel("Baseline: not fitted")
+        self.lbl_anomaly_baseline = QLabel(tr("sintel.baseline_not_fitted"))
         self.lbl_anomaly_baseline.setFont(mono_font(8))
         self.lbl_anomaly_baseline.setObjectName("label_dim")
         lay.addWidget(self.lbl_anomaly_baseline)
 
-        grp_score = QGroupBox("SCORING")
+        grp_score = QGroupBox(tr("sintel.scoring"))
         score_lay = QHBoxLayout(grp_score)
-        score_lay.addWidget(QLabel("Threshold:", font=mono_font(8)))
+        score_lay.addWidget(QLabel(tr("sintel.threshold"), font=mono_font(8)))
         self.anom_threshold = QDoubleSpinBox()
         self.anom_threshold.setRange(0.10, 1.00)
         self.anom_threshold.setSingleStep(0.05)
@@ -477,7 +481,7 @@ class SignalIntelligenceTab(QWidget):
         self.anom_threshold.setFixedWidth(70)
         score_lay.addWidget(self.anom_threshold)
         score_lay.addStretch()
-        self.btn_score = QPushButton("Score All Frames")
+        self.btn_score = QPushButton(tr("sintel.score_frames"))
         self.btn_score.setObjectName("btn_amber")
         self.btn_score.setEnabled(False)
         self.btn_score.clicked.connect(self._score_frames)
@@ -485,7 +489,8 @@ class SignalIntelligenceTab(QWidget):
         lay.addWidget(grp_score)
 
         self.anomaly_table = _make_table(
-            ["Timestamp", "CAN ID", "Score", "Flagged Bytes"]
+            [tr("sintel.timestamp"), tr("sintel.can_id"), tr("sintel.score"),
+             tr("sintel.flagged_bytes")]
         )
         lay.addWidget(self.anomaly_table)
 
@@ -504,8 +509,7 @@ class SignalIntelligenceTab(QWidget):
         lay.setSpacing(4)
 
         note = QLabel(
-            "Finds CAN IDs whose byte-statistics profile (entropy, delta-variance, "
-            "unique values, frequency) is most similar to the selected ID."
+            tr("sintel.sim_note")
         )
         note.setFont(mono_font(8))
         note.setObjectName("label_dim")
@@ -513,34 +517,35 @@ class SignalIntelligenceTab(QWidget):
         lay.addWidget(note)
 
         ctrl = QHBoxLayout()
-        self.lbl_sim_query = QLabel("Query ID: —")
+        self.lbl_sim_query = QLabel(tr("sintel.query_id"))
         self.lbl_sim_query.setFont(mono_font(9, bold=True))
         self.lbl_sim_query.setObjectName("label_green")
         ctrl.addWidget(self.lbl_sim_query, stretch=1)
 
-        ctrl.addWidget(QLabel("Top K:", font=mono_font(8)))
+        ctrl.addWidget(QLabel(tr("sintel.top_k"), font=mono_font(8)))
         self.sim_topk = QSpinBox()
         self.sim_topk.setRange(1, 30)
         self.sim_topk.setValue(5)
         self.sim_topk.setFixedWidth(55)
         ctrl.addWidget(self.sim_topk)
 
-        self.btn_build_index = QPushButton("Build Index")
+        self.btn_build_index = QPushButton(tr("sintel.build_index"))
         self.btn_build_index.clicked.connect(self._build_embedding_index)
         ctrl.addWidget(self.btn_build_index)
 
-        self.btn_find_sim = QPushButton("Find Similar")
+        self.btn_find_sim = QPushButton(tr("sintel.find_similar"))
         self.btn_find_sim.setObjectName("btn_amber")
         self.btn_find_sim.clicked.connect(self._find_similar)
         ctrl.addWidget(self.btn_find_sim)
         lay.addLayout(ctrl)
 
         self.sim_table = _make_table(
-            ["ID", "Similarity", "Entropy Profile", "Frequency Class"]
+            ["ID", tr("sintel.similarity"), tr("sintel.entropy_profile"),
+             tr("sintel.freq_class")]
         )
         lay.addWidget(self.sim_table)
 
-        self.lbl_sim_status = QLabel("Build index first.")
+        self.lbl_sim_status = QLabel(tr("sintel.build_index_first"))
         self.lbl_sim_status.setFont(mono_font(7))
         self.lbl_sim_status.setObjectName("label_dim")
         lay.addWidget(self.lbl_sim_status)
@@ -554,7 +559,7 @@ class SignalIntelligenceTab(QWidget):
             item = QListWidgetItem(can_id)
             item.setData(Qt.ItemDataRole.UserRole, can_id)
             self.id_list.addItem(item)
-        self.lbl_status.setText(f"{count} frames, {self.id_list.count()} IDs")
+        self.lbl_status.setText(tr("sintel.frame_status", count=count, ids=self.id_list.count()))
         # Auto-rebuild embedding index silently
         self._build_embedding_index_silent()
 
@@ -574,7 +579,7 @@ class SignalIntelligenceTab(QWidget):
     def _update_query_labels(self, hex_id: str):
         self.lbl_roles_id.setText(f"0x{hex_id}")
         self.lbl_cs_id.setText(f"0x{hex_id}")
-        self.lbl_sim_query.setText(f"Query ID: 0x{hex_id}")
+        self.lbl_sim_query.setText(tr("sintel.query_id_value", hex_id=hex_id))
 
     def _current_id(self) -> str | None:
         item = self.id_list.currentItem()
@@ -599,7 +604,7 @@ class SignalIntelligenceTab(QWidget):
     def _process_next_batch(self):
         if not getattr(self, "_batch_queue", []):
             self.lbl_status.setText(
-                f"Batch complete — {getattr(self, '_batch_total', 0)} IDs classified"
+                tr("sintel.batch_complete", n=getattr(self, '_batch_total', 0))
             )
             return
         can_id = self._batch_queue.pop(0)
@@ -609,7 +614,7 @@ class SignalIntelligenceTab(QWidget):
                 self.id_list.setCurrentRow(i)
                 break
         done = self._batch_total - len(self._batch_queue)
-        self.lbl_status.setText(f"Classifying {done}/{self._batch_total}  0x{can_id}…")
+        self.lbl_status.setText(tr("sintel.classifying", done=done, total=self._batch_total, id=can_id))
         # Start the worker, then schedule next after it finishes
         frames = self._state.get_frames_for_id(can_id)
         if frames.empty:
