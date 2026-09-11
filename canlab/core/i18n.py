@@ -44,6 +44,36 @@ _ZH = {
     "settings.model": "模型",
     "settings.active_ai": "当前 AI 提供商",
     "settings.reset": "重置为默认",
+    # common
+    "common.close": "关闭",
+    # frames tab
+    "frames.filter.id": "ID:",
+    "frames.filter.id_ph": "ID 过滤（十六进制）...",
+    "frames.filter.bus": "总线:",
+    "frames.follow": "跟随",
+    "frames.freeze": "冻结",
+    "frames.frozen": "已冻结",
+    "frames.count": "{shown} / {total} 帧",
+    "frames.detail.title": "帧详情",
+    "frames.detail.title_id": "帧详情 — 0x{id_}",
+    "frames.detail.id": "ID:        0x{id}",
+    "frames.detail.ts": "时间戳: {value}",
+    "frames.detail.header": "字节  十六进制  十进制  二进制",
+    # signals tab
+    "signals.classify": "自动分类全部",
+    "signals.filter": "过滤:",
+    "signals.export": "导出 CSV",
+    "signals.export_csv_title": "导出 CSV",
+    "signals.analyzing": "分析中...",
+    "signals.classified_done": "已分类 {n} 个 ID",
+    # plot tab
+    "plot.signals.label": "信号",
+    "plot.clear_all": "全部清除",
+    "plot.live_off": "实时: 关",
+    "plot.live_on": "实时: 开",
+    "plot.screenshot": "截图",
+    "plot.save_screenshot": "保存截图",
+    "plot.screenshot_fail": "无法保存截图: {err}",
 }
 
 _EN = {
@@ -70,6 +100,36 @@ _EN = {
     "settings.model": "Model",
     "settings.active_ai": "Active AI Provider",
     "settings.reset": "Reset to defaults",
+    # common
+    "common.close": "Close",
+    # frames tab
+    "frames.filter.id": "ID:",
+    "frames.filter.id_ph": "hex filter...",
+    "frames.filter.bus": "Bus:",
+    "frames.follow": "Follow",
+    "frames.freeze": "Freeze",
+    "frames.frozen": "Frozen",
+    "frames.count": "{shown} / {total} frames",
+    "frames.detail.title": "Frame Detail",
+    "frames.detail.title_id": "Frame Detail — 0x{id_}",
+    "frames.detail.id": "ID:        0x{id}",
+    "frames.detail.ts": "Timestamp: {value}",
+    "frames.detail.header": "Byte  Hex  Dec  Bin",
+    # signals tab
+    "signals.classify": "Auto-classify All",
+    "signals.filter": "Filter:",
+    "signals.export": "Export CSV",
+    "signals.export_csv_title": "Export CSV",
+    "signals.analyzing": "Analyzing...",
+    "signals.classified_done": "Classified {n} IDs",
+    # plot tab
+    "plot.signals.label": "SIGNALS",
+    "plot.clear_all": "Clear All",
+    "plot.live_off": "LIVE: OFF",
+    "plot.live_on": "LIVE: ON",
+    "plot.screenshot": "Screenshot",
+    "plot.save_screenshot": "Save Screenshot",
+    "plot.screenshot_fail": "Could not save screenshot: {err}",
 }
 
 _LANG: dict[str, dict[str, str]] = {LANGUAGE_ZH: _ZH, LANGUAGE_EN: _EN}

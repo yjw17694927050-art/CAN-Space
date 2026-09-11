@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 pg.setConfigOption("background", COLORS["bg"])
 pg.setConfigOption("foreground", COLORS["text"])
@@ -49,7 +50,7 @@ class PlotTab(QWidget):
         left_lay.setContentsMargins(4, 4, 4, 4)
         left_lay.setSpacing(4)
 
-        lbl = QLabel("SIGNALS")
+        lbl = QLabel(tr("plot.signals.label"))
         lbl.setObjectName("label_dim")
         lbl.setFont(mono_font(8))
         left_lay.addWidget(lbl)
@@ -60,11 +61,11 @@ class PlotTab(QWidget):
         self.sig_tree.itemChanged.connect(self._on_item_checked)
         left_lay.addWidget(self.sig_tree)
 
-        btn_clear = QPushButton("Clear All")
+        btn_clear = QPushButton(tr("plot.clear_all"))
         btn_clear.clicked.connect(self._clear_plot)
         left_lay.addWidget(btn_clear)
 
-        self.btn_live = QPushButton("LIVE: OFF")
+        self.btn_live = QPushButton(tr("plot.live_off"))
         self.btn_live.setCheckable(True)
         self.btn_live.setFont(mono_font(8))
         self.btn_live.setStyleSheet(
@@ -93,7 +94,7 @@ class PlotTab(QWidget):
         self.lbl_cursor.setFont(mono_font(8))
         tb.addWidget(self.lbl_cursor)
         tb.addStretch()
-        btn_shot = QPushButton("Screenshot")
+        btn_shot = QPushButton(tr("plot.screenshot"))
         btn_shot.clicked.connect(self._screenshot)
         btn_shot.setMaximumWidth(90)
         tb.addWidget(btn_shot)
@@ -312,7 +313,7 @@ class PlotTab(QWidget):
 
     def _on_live_toggled(self, checked: bool):
         self._live_enabled = checked
-        self.btn_live.setText("LIVE: ON" if checked else "LIVE: OFF")
+        self.btn_live.setText(tr("plot.live_on") if checked else tr("plot.live_off"))
 
     def _on_dbc_db_updated(self):
         self._refresh_tree()
@@ -384,7 +385,7 @@ class PlotTab(QWidget):
         self.lbl_cursor.setText("x: — y: —")
 
     def _screenshot(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Save Screenshot", "plot.png", "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("plot.save_screenshot"), "plot.png", "PNG (*.png)")
         if not path:
             return
         try:
@@ -392,7 +393,8 @@ class PlotTab(QWidget):
             exporter = pg_exporters.ImageExporter(self.glw.scene())
             exporter.export(path)
         except Exception as e:
-            QMessageBox.warning(self, "Screenshot", f"Could not save screenshot: {e}")
+            QMessageBox.warning(self, tr("plot.screenshot"),
+                                tr("plot.screenshot_fail", err=str(e)))
 
     def add_event_markers(self, events: list[dict]):
         for pi, curve, color, label in self._plot_items.values():

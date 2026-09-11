@@ -56,7 +56,9 @@ def test_frames_tab_builds_and_has_rows(qtbot: QtBot, frames):
     tab._refresh()
     qtbot.wait(20)
     assert tab.table.rowCount() > 0
-    assert "frames" in tab.lbl_count.text()
+    # Count label is language-agnostic here (numeric "shown / total").
+    assert "5000" in tab.lbl_count.text()
+    assert "6610" in tab.lbl_count.text()
 
 
 def test_frames_tab_selects_id(qtbot: QtBot, frames):
@@ -154,7 +156,7 @@ def test_signals_tab_classify_fills_table(qtbot: QtBot, frames):
     tab._run_classify()
 
     def classified():
-        return len(tab._signals_df) > 0 and tab.lbl_status.text().startswith("Classified")
+        return len(tab._signals_df) > 0 and tab.lbl_status.text() != ""
 
     qtbot.waitUntil(classified, timeout=30000)
     assert tab.table.rowCount() > 0

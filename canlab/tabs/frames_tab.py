@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QBrush, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 
 BYTE_COLS   = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 ALL_COLUMNS = ["Timestamp", "ID", "Bus", "DLC"] + BYTE_COLS + ["Delta"]
@@ -60,14 +61,14 @@ class FramesTab(QWidget):
         fb_lay.setContentsMargins(4, 2, 4, 2)
         fb_lay.setSpacing(6)
 
-        fb_lay.addWidget(QLabel("ID:"))
+        fb_lay.addWidget(QLabel(tr("frames.filter.id")))
         self.filter_id = QLineEdit()
-        self.filter_id.setPlaceholderText("hex filter...")
+        self.filter_id.setPlaceholderText(tr("frames.filter.id_ph"))
         self.filter_id.setMaximumWidth(100)
         self.filter_id.textChanged.connect(self._on_filter_changed)
         fb_lay.addWidget(self.filter_id)
 
-        fb_lay.addWidget(QLabel("Bus:"))
+        fb_lay.addWidget(QLabel(tr("frames.filter.bus")))
         self.filter_bus = QComboBox()
         self.filter_bus.addItem("All")
         self.filter_bus.setMaximumWidth(80)
@@ -76,18 +77,18 @@ class FramesTab(QWidget):
 
         fb_lay.addStretch()
 
-        self.chk_follow = QCheckBox("Follow")
+        self.chk_follow = QCheckBox(tr("frames.follow"))
         self.chk_follow.setChecked(True)
         self.chk_follow.toggled.connect(lambda v: setattr(self, '_follow', v))
         fb_lay.addWidget(self.chk_follow)
 
-        self.btn_freeze = QPushButton("Freeze")
+        self.btn_freeze = QPushButton(tr("frames.freeze"))
         self.btn_freeze.setCheckable(True)
         self.btn_freeze.setMaximumWidth(60)
         self.btn_freeze.toggled.connect(self._on_freeze)
         fb_lay.addWidget(self.btn_freeze)
 
-        self.lbl_count = QLabel("0 / 0 frames")
+        self.lbl_count = QLabel(tr("frames.count", shown=0, total=0))
         self.lbl_count.setObjectName("label_dim")
         fb_lay.addWidget(self.lbl_count)
 
@@ -108,7 +109,7 @@ class FramesTab(QWidget):
 
     def _on_freeze(self, frozen: bool):
         self._frozen = frozen
-        self.btn_freeze.setText("Frozen" if frozen else "Freeze")
+        self.btn_freeze.setText(tr("frames.frozen" if frozen else "frames.freeze"))
 
     def _on_filter_changed(self):
         self._filter_id  = self.filter_id.text().strip().upper()
@@ -145,7 +146,7 @@ class FramesTab(QWidget):
         # Limit display
         total = len(fdf)
         fdf = fdf.tail(MAX_DISPLAY)
-        self.lbl_count.setText(f"{len(fdf)} / {total} frames")
+        self.lbl_count.setText(tr("frames.count", shown=len(fdf), total=total))
 
         # Dynamic byte columns (CAN FD support)
         active_byte_cols = _active_byte_cols(fdf)
@@ -211,12 +212,12 @@ class FramesTab(QWidget):
 class FrameDetailDialog(QDialog):
     def __init__(self, table: QTableWidget, row: int, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Frame Detail")
+        self.setWindowTitle(tr("frames.detail.title"))
         self.setMinimumSize(400, 300)
         lay = QVBoxLayout(self)
 
         can_id = table.item(row, 1).text() if table.item(row, 1) else "?"
-        self.setWindowTitle(f"Frame Detail — 0x{can_id}")
+        self.setWindowTitle(tr("frames.detail.title_id", id_=can_id))
 
         txt = QTextEdit()
         txt.setReadOnly(True)
@@ -233,20 +234,20 @@ class FrameDetailDialog(QDialog):
             else:
                 byte_vals.append(0)
 
-        lines = [f"ID:        0x{can_id}"]
+        lines = [tr("frames.detail.id", id=can_id)]
         ts_item = table.item(row, 0)
-        lines.append(f"Timestamp: {ts_item.text() if ts_item else '?'}")
+        lines.append(tr("frames.detail.ts", value=ts_item.text() if ts_item else "?"))
         lines.append("")
-        lines.append("Byte  Hex  Dec  Bin")
+        lines.append(tr("frames.detail.header"))
         lines.append("-" * 30)
         for i, v in enumerate(byte_vals):
             lines.append(f"B{i}    {v:02X}   {v:3d}  {v:08b}")
 
         lines.append("")
-        lines.append(f"Raw: {' '.join(format(v,'02X') for v in byte_vals)}")
+        lines.append("Raw: " + ' '.join(format(v, '02X') for v in byte_vals))
         txt.setPlainText("\n".join(lines))
         lay.addWidget(txt)
 
-        btn = QPushButton("Close")
+        btn = QPushButton(tr("common.close"))
         btn.clicked.connect(self.accept)
         lay.addWidget(btn)

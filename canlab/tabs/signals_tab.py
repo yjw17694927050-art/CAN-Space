@@ -8,6 +8,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.signal_analyzer import analyze_all
+from core.i18n import tr
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 
@@ -62,11 +63,11 @@ class SignalsTab(QWidget):
         tb_lay.setContentsMargins(4, 2, 4, 2)
         tb_lay.setSpacing(6)
 
-        self.btn_classify = QPushButton("Auto-classify All")
+        self.btn_classify = QPushButton(tr("signals.classify"))
         self.btn_classify.clicked.connect(self._run_classify)
         tb_lay.addWidget(self.btn_classify)
 
-        tb_lay.addWidget(QLabel("Filter:"))
+        tb_lay.addWidget(QLabel(tr("signals.filter")))
         self.filter_combo = QComboBox()
         self.filter_combo.addItems(["ALL", "UNKNOWN", "SENSOR", "COUNTER", "STATUS_FLAG", "DIAGNOSTIC"])
         self.filter_combo.setMaximumWidth(120)
@@ -75,7 +76,7 @@ class SignalsTab(QWidget):
 
         tb_lay.addStretch()
 
-        btn_export = QPushButton("Export CSV")
+        btn_export = QPushButton(tr("signals.export"))
         btn_export.clicked.connect(self._export_csv)
         tb_lay.addWidget(btn_export)
 
@@ -104,7 +105,7 @@ class SignalsTab(QWidget):
         df = self._state.frames_df
         if df.empty:
             return
-        self.lbl_status.setText("Analyzing...")
+        self.lbl_status.setText(tr("signals.analyzing"))
         self.btn_classify.setEnabled(False)
         self._worker = AnalyzeWorker(df)
         self._worker.done.connect(self._on_analyze_done)
@@ -113,7 +114,7 @@ class SignalsTab(QWidget):
     def _on_analyze_done(self, result_df):
         self._signals_df = result_df
         self._apply_filter(self._filter_type)
-        self.lbl_status.setText(f"Classified {len(result_df)} IDs")
+        self.lbl_status.setText(tr("signals.classified_done", n=len(result_df)))
         self.btn_classify.setEnabled(True)
 
     def _apply_filter(self, type_filter: str):
@@ -186,6 +187,6 @@ class SignalsTab(QWidget):
     def _export_csv(self):
         if self._signals_df.empty:
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Export CSV", "signals.csv", "CSV (*.csv)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("signals.export_csv_title"), "signals.csv", "CSV (*.csv)")
         if path:
             self._signals_df.to_csv(path, index=False)
