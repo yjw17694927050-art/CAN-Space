@@ -13,10 +13,10 @@
 
 **目标**：把代码库稳定在当前提交对应的"已审查、已测试"状态，作为后续所有改造的基线。
 
-- [ ] 确认工作目录更名 `CAN-Space` 与 git 一致（目录 CAN-Space / 仓库 yjw17694927050-art/CAN）。
-- [ ] 补全版本号、`canlab.spec` 打包配置检查。
-- [ ] 确认测试基线 **148 passed / 2 skipped** 稳定可复现（MDF/MCP 需可选依赖）。
-- [ ] 建立分支约定（`main` 稳定 / `dev` 或 `feature/*` 开发）。
+- [x] 确认工作目录更名 `CAN-Space` 与 git 一致（目录 CAN-Space / 仓库 yjw17694927050-art/CAN）。
+- [x] 补全版本号、`canlab.spec` 打包配置检查（PyInstaller 6.22.2 实跑构建成功，产物 32.1 MB 冒烟启动正常）。
+- [x] 确认测试基线 **169 passed / 1 skipped** 稳定可复现（超过原 148/2 基线）。
+- [x] 建立分支约定（`main` 稳定 / `dev` 或 `feature/*` 开发，已写入 `个人开发规范.md` §2.4，dev 分支已创建）。
 
 **退出标准**：`git status` 干净；`.venv` 下 `pytest tests/ -q` 复现基线；本地能 `python main.py` 启动。
 
