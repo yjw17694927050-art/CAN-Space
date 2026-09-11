@@ -1,0 +1,10 @@
+{
+  "name": "generic",
+  "label": "通用 / Generic",
+  "vehicle": "",
+  "bus_speed_kbps": 500,
+  "byte_order": "little-endian",
+  "counter_notes": "Rolling counters commonly occupy a reserved nibble of a data byte; confirm by the '-1,0,1,2...' increment pattern and wrap-over before assuming a counter.",
+  "checksum_notes": "If a checksum is suspected, verify with XOR8, SUM8 (mod 256) or CRC-8 variants before concluding; do not assume any fixed byte.",
+  "extra_guidance": "The target vehicle is NOT specified. Do not invent make/model specific conventions; infer signal layouts strictly from the observed byte statistics and frame timing."
+}

@@ -1,0 +1,10 @@
+{
+  "name": "hyundai_kia",
+  "label": "Hyundai / Kia",
+  "vehicle": "Hyundai Kona",
+  "bus_speed_kbps": 500,
+  "byte_order": "little-endian",
+  "counter_notes": "Many signals use rolling counters in the upper nibble of byte 0.",
+  "checksum_notes": "Checksums are often located in byte 7; reference hyundai_kia_generic.dbc patterns.",
+  "extra_guidance": ""
+}

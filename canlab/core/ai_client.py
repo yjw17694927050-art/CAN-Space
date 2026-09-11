@@ -2,23 +2,14 @@ import anthropic
 import pandas as pd
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from core.vehicle_pack import build_system_prompt
+
 GROQ_DEFAULT_MODEL      = "llama-3.3-70b-versatile"
 ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5"
 OLLAMA_DEFAULT_MODEL    = "llama3.1"
 
-
-SYSTEM_PROMPT = """You are an expert automotive CAN bus reverse engineer specializing in Hyundai/Kia vehicles.
-Analyze CAN frame data and identify signals. The vehicle is a Hyundai Kona.
-Known Hyundai CAN characteristics: 500kbps bus speed, little-endian default,
-many signals use rolling counters in the upper nibble of byte 0,
-checksums often in byte 7. Reference hyundai_kia_generic.dbc patterns.
-Format your response with clear sections:
-
-SIGNAL IDENTIFICATION
-BYTE MAPPING
-SCALING & UNITS
-CONFIDENCE (0-100%)
-RECOMMENDED DBC ENTRY"""
+# Pack name used when the caller does not specify one (PRD R1.4: generic default).
+DEFAULT_VEHICLE_PACK = "generic"
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 
@@ -128,6 +119,7 @@ class AIWorker(QThread):
         model:      str = "",
         groq_key:   str = "",
         ml_insights: str = "",
+        vehicle_pack: str = DEFAULT_VEHICLE_PACK,
         parent=None,
     ):
         super().__init__(parent)
@@ -144,6 +136,8 @@ class AIWorker(QThread):
         }.get(provider, ANTHROPIC_DEFAULT_MODEL)
         self.groq_key           = groq_key
         self.ml_insights        = ml_insights
+        self.vehicle_pack       = vehicle_pack
+        self._system_prompt     = build_system_prompt(vehicle_pack)
         self._full_response     = ""
 
     def run(self):
@@ -173,7 +167,7 @@ class AIWorker(QThread):
             with client.messages.stream(
                 model=self.model,
                 max_tokens=1500,
-                system=SYSTEM_PROMPT,
+                system=self._system_prompt,
                 messages=[{"role": "user", "content": prompt}],
             ) as stream:
                 for text in stream.text_stream:
@@ -198,7 +192,7 @@ class AIWorker(QThread):
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": self._system_prompt},
                         {"role": "user",   "content": prompt},
                     ],
                     "stream": True,
@@ -234,7 +228,7 @@ class AIWorker(QThread):
                 model=self.model,
                 max_tokens=1500,
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": self._system_prompt},
                     {"role": "user",   "content": prompt},
                 ],
                 stream=True,
