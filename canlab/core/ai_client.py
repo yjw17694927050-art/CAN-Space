@@ -4,6 +4,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from dataclasses import dataclass
 
 from core.vehicle_pack import build_system_prompt
+from core.i18n import current_language
 
 GROQ_DEFAULT_MODEL      = "llama-3.3-70b-versatile"
 ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5"
@@ -171,7 +172,8 @@ class AIWorker(QThread):
         self.groq_key       = groq_key
         self.ml_insights    = ml_insights
         self.vehicle_pack   = vehicle_pack
-        self._system_prompt = build_system_prompt(vehicle_pack)
+        self._system_prompt = build_system_prompt(
+            vehicle_pack, language=current_language())
         self._full_response = ""
 
     def run(self):

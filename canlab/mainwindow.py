@@ -11,6 +11,7 @@ from PyQt6.QtGui import QFont, QColor, QAction
 
 from theme import COLORS, mono_font
 from core.state import get_state
+from core.i18n import tr
 from core.log_parser import parse_log_file
 from core.event_correlator import parse_annotations, correlate_events
 from core.dbc_manager import load_dbc
@@ -128,7 +129,7 @@ class MultiBusWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("CANLAB — CAN Reverse Engineering Suite")
+        self.setWindowTitle(tr("app.title"))
         self.showMaximized()
 
         self._state        = get_state()
@@ -352,21 +353,21 @@ class MainWindow(QMainWindow):
         self.ml_intel_tab     = SignalIntelligenceTab()
         self.gateway_tab      = GatewayTab()
 
-        self.tabs.addTab(self.frames_tab,       "FRAMES")
-        self.tabs.addTab(self.signals_tab,      "SIGNALS")
-        self.tabs.addTab(self.plot_tab,         "PLOT")
-        self.tabs.addTab(self.ai_tab,           "AI ENGINE ★")
-        self.tabs.addTab(self.dbc_tab,          "DBC BUILDER")
-        self.tabs.addTab(self.codegen_tab,      "CODE GEN")
-        self.tabs.addTab(self.intelligence_tab, "INTELLIGENCE")
-        self.tabs.addTab(self.injection_tab,    "INJECTION")
-        self.tabs.addTab(self.diagnostics_tab,  "DIAGNOSTICS")
-        self.tabs.addTab(self.dashboard_tab,    "DASHBOARD")
-        self.tabs.addTab(self.auto_re_tab,      "AUTO-RE ★")
-        self.tabs.addTab(self.timeline_tab,     "TIMELINE ★")
-        self.tabs.addTab(self.obd_tab,          "OBD-II ★")
-        self.tabs.addTab(self.ml_intel_tab,     "ML INTEL ★")
-        self.tabs.addTab(self.gateway_tab,      "GATEWAY ★")
+        self.tabs.addTab(self.frames_tab,       tr("tab.frames"))
+        self.tabs.addTab(self.signals_tab,      tr("tab.signals"))
+        self.tabs.addTab(self.plot_tab,         tr("tab.plot"))
+        self.tabs.addTab(self.ai_tab,           tr("tab.ai"))
+        self.tabs.addTab(self.dbc_tab,          tr("tab.dbc"))
+        self.tabs.addTab(self.codegen_tab,      tr("tab.codegen"))
+        self.tabs.addTab(self.intelligence_tab, tr("tab.intelligence"))
+        self.tabs.addTab(self.injection_tab,    tr("tab.injection"))
+        self.tabs.addTab(self.diagnostics_tab,  tr("tab.diagnostics"))
+        self.tabs.addTab(self.dashboard_tab,    tr("tab.dashboard"))
+        self.tabs.addTab(self.auto_re_tab,      tr("tab.autore"))
+        self.tabs.addTab(self.timeline_tab,     tr("tab.timeline"))
+        self.tabs.addTab(self.obd_tab,          tr("tab.obd"))
+        self.tabs.addTab(self.ml_intel_tab,     tr("tab.mlintel"))
+        self.tabs.addTab(self.gateway_tab,      tr("tab.gateway"))
 
         main_lay.addWidget(self.tabs, stretch=1)
 

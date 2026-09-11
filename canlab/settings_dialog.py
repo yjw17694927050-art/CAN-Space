@@ -7,7 +7,12 @@ from PyQt6.QtWidgets import (
     QSpinBox, QListWidget, QListWidgetItem, QCheckBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QButtonGroup,
 )
+from PyQt6.QtCore import QSettings
 from theme import COLORS, mono_font
+from core.i18n import (
+    current_language, set_language, tr,
+    LANGUAGE_ZH, LANGUAGE_EN, _LANG,
+)
 
 KEYRING_SERVICE    = "canlab"
 KEYRING_API_KEY    = "anthropic_api_key"
@@ -15,6 +20,16 @@ KEYRING_GH_TOKEN   = "github_token"
 KEYRING_GROQ_KEY   = "groq_api_key"
 KEYRING_AI_PROVIDER = "ai_provider"
 KEYRING_AI_MODEL    = "ai_model"
+
+
+def save_language(code: str) -> None:
+    QSettings("CAN-Space", "CAN-Space").setValue("language", code)
+
+
+def load_saved_language() -> str:
+    code = QSettings("CAN-Space", "CAN-Space").value(
+        "language", LANGUAGE_ZH, type=str)
+    return code if code in _LANG else LANGUAGE_ZH
 
 # Provider → available models
 AI_MODELS = {
@@ -148,15 +163,17 @@ class SettingsDialog(QDialog):
         groq_g_lay.addWidget(hint_groq, 1, 0, 1, 3)
         api_lay.addWidget(groq_grp)
 
-        # Active provider + model
-        model_grp = QGroupBox("Active AI Provider")
-        model_g_lay = QGridLayout(model_grp)
-        model_g_lay.addWidget(QLabel("Provider:"), 0, 0)
+        # Active provider + model + i18n language
+        self.model_grp = QGroupBox(tr("settings.active_ai"))
+        model_g_lay = QGridLayout(self.model_grp)
+        self.lbl_provider = QLabel(tr("settings.ai_provider"))
+        model_g_lay.addWidget(self.lbl_provider, 0, 0)
         self.provider_combo = QComboBox()
         self.provider_combo.addItems(list(AI_MODELS.keys()))
         self.provider_combo.setFont(mono_font(9))
         model_g_lay.addWidget(self.provider_combo, 0, 1)
-        model_g_lay.addWidget(QLabel("Model:"), 1, 0)
+        self.lbl_model = QLabel(tr("settings.model"))
+        model_g_lay.addWidget(self.lbl_model, 1, 0)
         self.model_combo = QComboBox()
         self.model_combo.setFont(mono_font(9))
         model_g_lay.addWidget(self.model_combo, 1, 1)
@@ -167,11 +184,21 @@ class SettingsDialog(QDialog):
         hint_model.setObjectName("label_dim")
         hint_model.setWordWrap(True)
         model_g_lay.addWidget(hint_model, 2, 0, 1, 2)
-        api_lay.addWidget(model_grp)
+        # Language switch (i18n, P1.3)
+        self.lbl_language = QLabel(tr("settings.language"))
+        model_g_lay.addWidget(self.lbl_language, 3, 0)
+        self.language_combo = QComboBox()
+        self.language_combo.addItem(tr("settings.language.zh"), LANGUAGE_ZH)
+        self.language_combo.addItem(tr("settings.language.en"), LANGUAGE_EN)
+        model_g_lay.addWidget(self.language_combo, 3, 1)
+        api_lay.addWidget(self.model_grp)
 
         # Wire provider → model list update
         self.provider_combo.currentTextChanged.connect(self._on_provider_changed)
         self._on_provider_changed(self.provider_combo.currentText())
+        self.language_combo.currentIndexChanged.connect(
+            lambda _: self._on_language_changed()
+        )
 
         api_lay.addStretch()
         tabs.addTab(api_tab, "API KEYS")
@@ -379,6 +406,17 @@ class SettingsDialog(QDialog):
         btn_row.addWidget(btn_cancel)
         lay.addLayout(btn_row)
 
+    def _on_language_changed(self):
+        """Apply the selected language and re-label the AI/API group live."""
+        code = self.language_combo.currentData() or LANGUAGE_ZH
+        set_language(code)
+        self.model_grp.setTitle(tr("settings.active_ai"))
+        self.lbl_provider.setText(tr("settings.ai_provider"))
+        self.lbl_model.setText(tr("settings.model"))
+        self.lbl_language.setText(tr("settings.language"))
+        self.language_combo.setItemText(0, tr("settings.language.zh"))
+        self.language_combo.setItemText(1, tr("settings.language.en"))
+
     def _on_provider_changed(self, provider: str):
         self.model_combo.blockSignals(True)
         self.model_combo.clear()
@@ -389,6 +427,12 @@ class SettingsDialog(QDialog):
         self.api_key_edit.setText(load_api_key())
         self.gh_token_edit.setText(load_gh_token())
         self.groq_key_edit.setText(load_groq_key())
+
+        # Restore saved language (i18n)
+        lang_idx = self.language_combo.findData(load_saved_language())
+        if lang_idx >= 0:
+            self.language_combo.setCurrentIndex(lang_idx)
+        self._on_language_changed()
 
         # Restore saved provider + model
         saved_provider = load_ai_provider()
@@ -426,6 +470,7 @@ class SettingsDialog(QDialog):
             save_groq_key(groq_key)
         save_ai_provider(self.provider_combo.currentText())
         save_ai_model(self.model_combo.currentText())
+        save_language(self.language_combo.currentData() or current_language())
 
         # Persist new settings to AppState
         from core.state import get_state

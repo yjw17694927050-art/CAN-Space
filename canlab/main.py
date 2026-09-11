@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox
 from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QFont
 from theme import QSS, mono_font
+from core.i18n import LANGUAGE_ZH, _LANG, set_language
 from mainwindow import MainWindow
 
 _DISCLAIMER = """\
@@ -57,6 +58,11 @@ def main():
     app.setOrganizationName("CAN-Space")
     app.setStyleSheet(QSS)
     app.setFont(mono_font())
+
+    # Apply persisted i18n language (default zh).
+    lang = QSettings("CAN-Space", "CAN-Space").value(
+        "language", LANGUAGE_ZH, type=str)
+    set_language(lang if lang in _LANG else LANGUAGE_ZH)
 
     _show_safety_disclaimer(app)
 
