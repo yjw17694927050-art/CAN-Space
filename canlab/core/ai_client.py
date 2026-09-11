@@ -1,6 +1,7 @@
 import anthropic
 import pandas as pd
 from PyQt6.QtCore import QThread, pyqtSignal
+from dataclasses import dataclass
 
 from core.vehicle_pack import build_system_prompt
 
@@ -10,6 +11,39 @@ OLLAMA_DEFAULT_MODEL    = "llama3.1"
 
 # Pack name used when the caller does not specify one (PRD R1.4: generic default).
 DEFAULT_VEHICLE_PACK = "generic"
+
+
+@dataclass(frozen=True)
+class ProviderSpec:
+    """Descriptor of an AI provider; drives dispatch and defaults (PRD R3.1)."""
+    name: str
+    kind: str                 # "anthropic" | "openai_compatible"
+    default_model: str
+    base_url: str = ""
+    needs_key: bool = True
+
+
+PROVIDERS: dict[str, ProviderSpec] = {
+    "Anthropic": ProviderSpec("Anthropic", "anthropic", ANTHROPIC_DEFAULT_MODEL),
+    "Groq": ProviderSpec(
+        "Groq", "openai_compatible", GROQ_DEFAULT_MODEL,
+        base_url="https://api.groq.com/openai/v1",
+    ),
+    "Ollama": ProviderSpec(
+        "Ollama", "openai_compatible", OLLAMA_DEFAULT_MODEL,
+        base_url="http://localhost:11434/v1", needs_key=False,
+    ),
+    "OpenAI": ProviderSpec(
+        "OpenAI", "openai_compatible", "gpt-4o-mini",
+        base_url="https://api.openai.com/v1",
+    ),
+}
+
+
+def get_provider(name: str) -> ProviderSpec:
+    """Resolve a provider by display name; unknown providers fall back to Anthropic."""
+    return PROVIDERS.get(name or "", PROVIDERS["Anthropic"])
+
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 
@@ -120,33 +154,42 @@ class AIWorker(QThread):
         groq_key:   str = "",
         ml_insights: str = "",
         vehicle_pack: str = DEFAULT_VEHICLE_PACK,
+        base_url:   str = "",
         parent=None,
     ):
         super().__init__(parent)
-        self.api_key            = api_key
-        self.id_hex             = id_hex
-        self.frames_df          = frames_df
-        self.context            = context
+        self.spec           = get_provider(provider)
+        self.api_key        = api_key
+        self.id_hex         = id_hex
+        self.frames_df      = frames_df
+        self.context        = context
         self.event_correlations = event_correlations or []
-        self.repo_context       = repo_context
-        self.provider           = provider
-        self.model              = model or {
-            "Groq":   GROQ_DEFAULT_MODEL,
-            "Ollama": OLLAMA_DEFAULT_MODEL,
-        }.get(provider, ANTHROPIC_DEFAULT_MODEL)
-        self.groq_key           = groq_key
-        self.ml_insights        = ml_insights
-        self.vehicle_pack       = vehicle_pack
-        self._system_prompt     = build_system_prompt(vehicle_pack)
-        self._full_response     = ""
+        self.repo_context   = repo_context
+        self.provider       = provider
+        self.model          = model or self.spec.default_model
+        self.base_url       = base_url
+        self.groq_key       = groq_key
+        self.ml_insights    = ml_insights
+        self.vehicle_pack   = vehicle_pack
+        self._system_prompt = build_system_prompt(vehicle_pack)
+        self._full_response = ""
 
     def run(self):
-        if self.provider == "Groq":
-            self._run_groq()
-        elif self.provider == "Ollama":
-            self._run_ollama()
+        if self.spec.kind == "openai_compatible":
+            self._run_openai_compatible(
+                base_url=self.base_url or self.spec.base_url,
+                api_key=self._resolve_key(),
+                model=self.model,
+                name=self.spec.name,
+            )
         else:
             self._run_anthropic()
+
+    def _resolve_key(self) -> str:
+        # Backward compat: Groq historically stored a separate groq_api_key.
+        if self.spec.name == "Groq":
+            return self.groq_key or self.api_key
+        return self.api_key
 
     def _build_context(self):
         rc = None
@@ -181,21 +224,33 @@ class AIWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
-    def _run_ollama(self):
-        """Stream from a local Ollama server (fully offline, no API key)."""
-        import os, json, requests
-        base = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    def _run_openai_compatible(self, base_url: str, api_key: str,
+                               model: str, name: str):
+        """Stream from any OpenAI-compatible chat/completions endpoint.
+
+        A single base_url + api_key + model is enough to reuse any provider
+        with an OpenAI-compatible API (Groq, Ollama, OpenAI, and domestic
+        providers like Qwen/DeepSeek/Kimi/GLM via their compatible-mode URLs).
+        """
+        import json
+        import requests
+
+        base = (base_url or "").rstrip("/")
         try:
-            prompt = self._build_context()
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
             resp = requests.post(
-                f"{base}/api/chat",
+                f"{base}/chat/completions",
+                headers=headers,
                 json={
-                    "model": self.model,
+                    "model": model,
+                    "max_tokens": 1500,
+                    "stream": True,
                     "messages": [
                         {"role": "system", "content": self._system_prompt},
-                        {"role": "user",   "content": prompt},
+                        {"role": "user",   "content": self._build_context()},
                     ],
-                    "stream": True,
                 },
                 stream=True, timeout=180,
             )
@@ -203,47 +258,36 @@ class AIWorker(QThread):
             for line in resp.iter_lines():
                 if not line:
                     continue
-                obj = json.loads(line)
-                text = obj.get("message", {}).get("content", "")
+                raw = line.decode("utf-8", errors="ignore").strip()
+                if not raw.startswith("data:"):
+                    continue
+                data = raw[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                choices = obj.get("choices") or []
+                if not choices:
+                    continue
+                text = (choices[0].get("delta") or {}).get("content") or ""
                 if text:
                     self._full_response += text
                     self.chunk_received.emit(text)
-                if obj.get("done"):
-                    break
             self.finished.emit(self._full_response)
+        except requests.HTTPError as e:
+            status = getattr(getattr(e, "response", None), "status_code", 0)
+            if status in (401, 403):
+                self.error.emit(
+                    f"Invalid {name} API key. Check Settings > API Keys.")
+            elif status == 429:
+                self.error.emit(
+                    f"{name} rate limit exceeded. Wait a moment and retry.")
+            else:
+                self.error.emit(f"{name} error: {e}")
         except requests.ConnectionError:
             self.error.emit(
-                f"Cannot reach Ollama at {base}. Start it with 'ollama serve' "
-                f"and pull a model (e.g. 'ollama pull {self.model}')."
-            )
+                f"Cannot reach {name} at {base}. Check base URL or network.")
         except Exception as e:
-            self.error.emit(f"Ollama error: {e}")
-
-    def _run_groq(self):
-        try:
-            from groq import Groq
-            client = Groq(api_key=self.groq_key)
-            prompt = self._build_context()
-            stream = client.chat.completions.create(
-                model=self.model,
-                max_tokens=1500,
-                messages=[
-                    {"role": "system", "content": self._system_prompt},
-                    {"role": "user",   "content": prompt},
-                ],
-                stream=True,
-            )
-            for chunk in stream:
-                text = chunk.choices[0].delta.content or ""
-                if text:
-                    self._full_response += text
-                    self.chunk_received.emit(text)
-            self.finished.emit(self._full_response)
-        except Exception as e:
-            err = str(e)
-            if "401" in err or "invalid_api_key" in err.lower():
-                self.error.emit("Invalid Groq API key. Check Settings > API Keys.")
-            elif "429" in err:
-                self.error.emit("Groq rate limit exceeded. Wait a moment and retry.")
-            else:
-                self.error.emit(f"Groq error: {err}")
+            self.error.emit(f"{name} error: {e}")
