@@ -22,21 +22,61 @@ class ProviderSpec:
     default_model: str
     base_url: str = ""
     needs_key: bool = True
+    models: tuple = ()
+    key_hint: str = ""        # where to obtain an API key
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
-    "Anthropic": ProviderSpec("Anthropic", "anthropic", ANTHROPIC_DEFAULT_MODEL),
+    "Anthropic": ProviderSpec(
+        "Anthropic", "anthropic", ANTHROPIC_DEFAULT_MODEL,
+        models=("claude-sonnet-5", "claude-opus-4-8",
+                "claude-haiku-4-5-20251001"),
+        key_hint="console.anthropic.com",
+    ),
     "Groq": ProviderSpec(
         "Groq", "openai_compatible", GROQ_DEFAULT_MODEL,
         base_url="https://api.groq.com/openai/v1",
+        models=("llama-3.3-70b-versatile", "llama-3.1-70b-versatile",
+                "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"),
+        key_hint="console.groq.com",
     ),
     "Ollama": ProviderSpec(
         "Ollama", "openai_compatible", OLLAMA_DEFAULT_MODEL,
         base_url="http://localhost:11434/v1", needs_key=False,
+        models=("llama3.1", "llama3.2", "qwen2.5", "mistral", "gemma2"),
     ),
     "OpenAI": ProviderSpec(
         "OpenAI", "openai_compatible", "gpt-4o-mini",
         base_url="https://api.openai.com/v1",
+        models=("gpt-4o-mini", "gpt-4o"),
+        key_hint="platform.openai.com",
+    ),
+    # ── Domestic providers (PRD R3.2) — all expose OpenAI-compatible APIs ──
+    # Model names change over time; the settings combo is editable so users
+    # can type newer model IDs without waiting for a release.
+    "Qwen": ProviderSpec(
+        "Qwen", "openai_compatible", "qwen-plus",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        models=("qwen-plus", "qwen-turbo", "qwen-max"),
+        key_hint="bailian.console.aliyun.com",
+    ),
+    "DeepSeek": ProviderSpec(
+        "DeepSeek", "openai_compatible", "deepseek-chat",
+        base_url="https://api.deepseek.com/v1",
+        models=("deepseek-chat", "deepseek-reasoner"),
+        key_hint="platform.deepseek.com",
+    ),
+    "Kimi": ProviderSpec(
+        "Kimi", "openai_compatible", "moonshot-v1-8k",
+        base_url="https://api.moonshot.cn/v1",
+        models=("moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"),
+        key_hint="platform.moonshot.cn",
+    ),
+    "GLM": ProviderSpec(
+        "GLM", "openai_compatible", "glm-4-flash",
+        base_url="https://open.bigmodel.cn/api/paas/v4",
+        models=("glm-4-flash", "glm-4-air", "glm-4-plus"),
+        key_hint="open.bigmodel.cn",
     ),
 }
 

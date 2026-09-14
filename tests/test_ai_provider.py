@@ -134,3 +134,122 @@ def test_openai_compatible_connection_error_message(monkeypatch):
     w._run_openai_compatible("http://localhost:11434/v1", "",
                              "llama3.1", "Ollama")
     assert errs and "Cannot reach Ollama" in errs[0]
+
+
+# ── Domestic providers (PRD R3.2 / P2.2) ──────────────────────────────────────
+
+def test_domestic_providers_registered():
+    domestic = {"Qwen", "DeepSeek", "Kimi", "GLM"}
+    assert domestic <= set(PROVIDERS)
+    for name in domestic:
+        spec = get_provider(name)
+        assert spec.kind == "openai_compatible", name
+        assert spec.base_url.startswith("https://"), name
+        assert spec.needs_key is True, name
+        assert spec.models and spec.default_model in spec.models, name
+
+
+def test_domestic_provider_dispatches_with_registry_base_url(monkeypatch):
+    calls = _capture(monkeypatch)
+    w = AIWorker(api_key="sk-test", id_hex="0", frames_df=_frames(),
+                 provider="DeepSeek")
+    w.run()
+    assert calls["url"] == "https://api.deepseek.com/v1/chat/completions"
+    assert calls["json"]["model"] == "deepseek-chat"
+    assert w._full_response == "Hello world"
+
+
+def test_base_url_override_wins_over_registry(monkeypatch):
+    """Custom/compatible endpoints (e.g. Volcengine Ark) work via base_url."""
+    calls = _capture(monkeypatch)
+    w = AIWorker(api_key="sk-test", id_hex="0", frames_df=_frames(),
+                 provider="Qwen", model="qwen-plus",
+                 base_url="https://ark.cn-beijing.volces.com/api/v3")
+    w.run()
+    assert calls["url"] == \
+        "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+
+
+def test_ai_models_derived_from_registry():
+    import settings_dialog
+    assert settings_dialog.AI_MODELS["Qwen"] == list(get_provider("Qwen").models)
+    assert "OpenAI" in settings_dialog.AI_MODELS  # was missing before P2.2
+
+
+def test_per_provider_model_and_base_url_persistence():
+    from PyQt6.QtCore import QSettings
+    from settings_dialog import (
+        load_provider_model, save_provider_model,
+        load_provider_base_url, save_provider_base_url,
+    )
+    qs = QSettings("CAN-Space", "CAN-Space")
+    try:
+        save_provider_model("DeepSeek", "deepseek-reasoner")
+        assert load_provider_model("DeepSeek") == "deepseek-reasoner"
+        save_provider_base_url("DeepSeek", "https://proxy.example.com/v1")
+        assert load_provider_base_url("DeepSeek") == \
+            "https://proxy.example.com/v1"
+        # Unset provider falls back to registry defaults
+        assert load_provider_model("Qwen") == "qwen-plus"
+        assert load_provider_base_url("Qwen") == \
+            "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    finally:
+        qs.remove("ai_model_deepseek")
+        qs.remove("ai_base_url_deepseek")
+
+
+def test_per_provider_key_roundtrip_with_mocked_keyring(monkeypatch):
+    import settings_dialog
+    store = {}
+    monkeypatch.setattr(settings_dialog.keyring, "set_password",
+                        lambda svc, slot, val: store.__setitem__(slot, val))
+    monkeypatch.setattr(settings_dialog.keyring, "get_password",
+                        lambda svc, slot: store.get(slot))
+    settings_dialog.save_provider_key("Kimi", "sk-kimi")
+    assert settings_dialog.load_provider_key("Kimi") == "sk-kimi"
+    # Legacy fallbacks keep old configs working
+    settings_dialog.save_api_key("sk-ant-legacy")
+    assert settings_dialog.load_provider_key("Anthropic") == "sk-ant-legacy"
+    settings_dialog.save_groq_key("gsk-legacy")
+    assert settings_dialog.load_provider_key("Groq") == "gsk-legacy"
+    assert settings_dialog.load_provider_key("GLM") == ""
+    # Empty keys must not clobber a stored one
+    settings_dialog.save_provider_key("Kimi", "")
+    assert settings_dialog.load_provider_key("Kimi") == "sk-kimi"
+
+
+def test_settings_dialog_per_provider_ui(qtbot, monkeypatch):
+    """Settings dialog lists all registry providers incl. domestic ones, and
+    switching provider refreshes key/base_url/model fields (P2.2)."""
+    import settings_dialog
+    store = {}
+    monkeypatch.setattr(settings_dialog.keyring, "set_password",
+                        lambda svc, slot, val: store.__setitem__(slot, val))
+    monkeypatch.setattr(settings_dialog.keyring, "get_password",
+                        lambda svc, slot: store.get(slot))
+    dlg = settings_dialog.SettingsDialog()
+    qtbot.add_widget(dlg)
+
+    listed = {dlg.provider_combo.itemText(i)
+              for i in range(dlg.provider_combo.count())}
+    assert {"Anthropic", "Groq", "Ollama", "OpenAI",
+            "Qwen", "DeepSeek", "Kimi", "GLM"} <= listed
+
+    dlg.provider_combo.setCurrentText("DeepSeek")
+    assert dlg.base_url_edit.text() == "https://api.deepseek.com/v1"
+    assert dlg.model_combo.currentText() == "deepseek-chat"
+    assert dlg.provider_key_edit.isEnabled()
+
+    # Edits survive a provider round-trip (stash-on-switch)
+    dlg.provider_key_edit.setText("sk-ds")
+    dlg.base_url_edit.setText("https://custom.deepseek.cn/v1")
+    dlg.provider_combo.setCurrentText("Ollama")
+    assert not dlg.provider_key_edit.isEnabled()   # keyless local server
+    assert dlg.base_url_edit.text() == "http://localhost:11434/v1"
+    dlg.provider_combo.setCurrentText("DeepSeek")
+    assert dlg.provider_key_edit.text() == "sk-ds"
+    assert dlg.base_url_edit.text() == "https://custom.deepseek.cn/v1"
+
+    # Anthropic (native SDK) hides base-url editing
+    dlg.provider_combo.setCurrentText("Anthropic")
+    assert not dlg.base_url_edit.isEnabled()

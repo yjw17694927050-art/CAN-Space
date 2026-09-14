@@ -42,28 +42,62 @@ def load_vehicle_pack() -> str:
         "vehicle_pack", "generic", type=str)
     return get_pack(name).name
 
-# Provider → available models
-AI_MODELS = {
-    "Anthropic": [
-        "claude-sonnet-5",
-        "claude-opus-4-8",
-        "claude-haiku-4-5-20251001",
-    ],
-    "Groq": [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-70b-versatile",
-        "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it",
-    ],
-    "Ollama": [
-        "llama3.1",
-        "llama3.2",
-        "qwen2.5",
-        "mistral",
-        "gemma2",
-    ],
-}
+# Provider → available models (derived from the registry; combos stay editable
+# so users can type newer model IDs without waiting for a release).
+from core.ai_client import PROVIDERS
+
+AI_MODELS = {name: list(spec.models) for name, spec in PROVIDERS.items()}
+
+
+def _provider_slot(provider: str) -> str:
+    return f"api_key_{(provider or '').lower()}"
+
+
+def save_provider_key(provider: str, key: str) -> None:
+    if key:
+        keyring.set_password(KEYRING_SERVICE, _provider_slot(provider), key)
+
+
+def load_provider_key(provider: str) -> str:
+    """Per-provider API key. Falls back to the legacy single-slot keys."""
+    try:
+        key = keyring.get_password(KEYRING_SERVICE, _provider_slot(provider))
+        if key:
+            return key
+        if provider == "Anthropic":
+            return keyring.get_password(KEYRING_SERVICE, KEYRING_API_KEY) or ""
+        if provider == "Groq":
+            return keyring.get_password(KEYRING_SERVICE, KEYRING_GROQ_KEY) or ""
+        return ""
+    except Exception:
+        return ""
+
+
+def save_provider_model(provider: str, model: str) -> None:
+    QSettings("CAN-Space", "CAN-Space").setValue(
+        f"ai_model_{provider.lower()}", model)
+
+
+def load_provider_model(provider: str) -> str:
+    model = QSettings("CAN-Space", "CAN-Space").value(
+        f"ai_model_{provider.lower()}", "", type=str)
+    if model:
+        return model
+    return PROVIDERS.get(provider).default_model if provider in PROVIDERS else ""
+
+
+def save_provider_base_url(provider: str, base_url: str) -> None:
+    QSettings("CAN-Space", "CAN-Space").setValue(
+        f"ai_base_url_{provider.lower()}", base_url)
+
+
+def load_provider_base_url(provider: str) -> str:
+    url = QSettings("CAN-Space", "CAN-Space").value(
+        f"ai_base_url_{provider.lower()}", "", type=str)
+    if url:
+        return url
+    spec = PROVIDERS.get(provider)
+    return spec.base_url if spec else ""
 
 
 def save_api_key(key: str):
@@ -174,7 +208,7 @@ class SettingsDialog(QDialog):
         groq_g_lay.addWidget(hint_groq, 1, 0, 1, 3)
         api_lay.addWidget(groq_grp)
 
-        # Active provider + model + i18n language
+        # Active provider + per-provider key/base_url/model + i18n language
         self.model_grp = QGroupBox(tr("settings.active_ai"))
         model_g_lay = QGridLayout(self.model_grp)
         self.lbl_provider = QLabel(tr("settings.ai_provider"))
@@ -182,35 +216,53 @@ class SettingsDialog(QDialog):
         self.provider_combo = QComboBox()
         self.provider_combo.addItems(list(AI_MODELS.keys()))
         self.provider_combo.setFont(mono_font(9))
-        model_g_lay.addWidget(self.provider_combo, 0, 1)
+        model_g_lay.addWidget(self.provider_combo, 0, 1, 1, 2)
+        # Per-provider API key (P2.2)
+        self.lbl_pkey = QLabel(tr("settings.api_key"))
+        model_g_lay.addWidget(self.lbl_pkey, 1, 0)
+        self.provider_key_edit = QLineEdit()
+        self.provider_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        model_g_lay.addWidget(self.provider_key_edit, 1, 1)
+        btn_show_pkey = QPushButton(tr("settings.show"))
+        btn_show_pkey.setCheckable(True)
+        btn_show_pkey.toggled.connect(lambda v: self.provider_key_edit.setEchoMode(
+            QLineEdit.EchoMode.Normal if v else QLineEdit.EchoMode.Password
+        ))
+        model_g_lay.addWidget(btn_show_pkey, 1, 2)
+        # Per-provider base URL (P2.2)
+        self.lbl_base_url = QLabel(tr("settings.base_url"))
+        model_g_lay.addWidget(self.lbl_base_url, 2, 0)
+        self.base_url_edit = QLineEdit()
+        self.base_url_edit.setFont(mono_font(9))
+        model_g_lay.addWidget(self.base_url_edit, 2, 1, 1, 2)
+        # Model (editable combo — users may type newer model IDs)
         self.lbl_model = QLabel(tr("settings.model"))
-        model_g_lay.addWidget(self.lbl_model, 1, 0)
+        model_g_lay.addWidget(self.lbl_model, 3, 0)
         self.model_combo = QComboBox()
+        self.model_combo.setEditable(True)
         self.model_combo.setFont(mono_font(9))
-        model_g_lay.addWidget(self.model_combo, 1, 1)
-        hint_model = QLabel(
-            "Groq default: llama-3.3-70b-versatile  ·  Anthropic default: claude-sonnet-5"
-        )
-        hint_model.setFont(mono_font(7))
-        hint_model.setObjectName("label_dim")
-        hint_model.setWordWrap(True)
-        model_g_lay.addWidget(hint_model, 2, 0, 1, 2)
+        model_g_lay.addWidget(self.model_combo, 3, 1, 1, 2)
+        self.hint_model = QLabel("")
+        self.hint_model.setFont(mono_font(7))
+        self.hint_model.setObjectName("label_dim")
+        self.hint_model.setWordWrap(True)
+        model_g_lay.addWidget(self.hint_model, 4, 0, 1, 3)
         # Language switch (i18n, P1.3)
         self.lbl_language = QLabel(tr("settings.language"))
-        model_g_lay.addWidget(self.lbl_language, 3, 0)
+        model_g_lay.addWidget(self.lbl_language, 5, 0)
         self.language_combo = QComboBox()
         self.language_combo.addItem(tr("settings.language.zh"), LANGUAGE_ZH)
         self.language_combo.addItem(tr("settings.language.en"), LANGUAGE_EN)
-        model_g_lay.addWidget(self.language_combo, 3, 1)
+        model_g_lay.addWidget(self.language_combo, 5, 1, 1, 2)
         # Vehicle knowledge pack (P1.1)
         self.lbl_vehicle_pack = QLabel(tr("settings.vehicle_pack"))
-        model_g_lay.addWidget(self.lbl_vehicle_pack, 4, 0)
+        model_g_lay.addWidget(self.lbl_vehicle_pack, 6, 0)
         self.vehicle_pack_combo = QComboBox()
         self.vehicle_pack_combo.setFont(mono_font(9))
         from core.vehicle_pack import load_all_packs
         for name, pack in load_all_packs().items():
             self.vehicle_pack_combo.addItem(pack.display_name(), name)
-        model_g_lay.addWidget(self.vehicle_pack_combo, 4, 1)
+        model_g_lay.addWidget(self.vehicle_pack_combo, 6, 1, 1, 2)
         api_lay.addWidget(self.model_grp)
 
         # Wire provider → model list update
@@ -433,16 +485,41 @@ class SettingsDialog(QDialog):
         self.model_grp.setTitle(tr("settings.active_ai"))
         self.lbl_provider.setText(tr("settings.ai_provider"))
         self.lbl_model.setText(tr("settings.model"))
+        self.lbl_pkey.setText(tr("settings.api_key"))
+        self.lbl_base_url.setText(tr("settings.base_url"))
         self.lbl_language.setText(tr("settings.language"))
         self.language_combo.setItemText(0, tr("settings.language.zh"))
         self.language_combo.setItemText(1, tr("settings.language.en"))
         self.lbl_vehicle_pack.setText(tr("settings.vehicle_pack"))
 
     def _on_provider_changed(self, provider: str):
+        # Stash the edits made for the previously shown provider so switching
+        # back and forth never loses typed-in values.
+        prev = getattr(self, "_editing_provider", None)
+        if prev and prev != provider:
+            save_provider_key(prev, self.provider_key_edit.text().strip())
+            save_provider_base_url(prev, self.base_url_edit.text().strip())
+            save_provider_model(prev, self.model_combo.currentText().strip())
+        self._editing_provider = provider
+
+        spec = PROVIDERS.get(provider)
         self.model_combo.blockSignals(True)
         self.model_combo.clear()
         self.model_combo.addItems(AI_MODELS.get(provider, []))
         self.model_combo.blockSignals(False)
+        self.model_combo.setCurrentText(load_provider_model(provider))
+        self.provider_key_edit.setText(load_provider_key(provider))
+        self.base_url_edit.setText(load_provider_base_url(provider))
+        self.base_url_edit.setEnabled(spec.kind == "openai_compatible"
+                                      if spec else False)
+        self.provider_key_edit.setEnabled(spec.needs_key if spec else True)
+        hint = ""
+        if spec:
+            if spec.key_hint:
+                hint = tr("settings.key_hint", url=spec.key_hint)
+            if not spec.needs_key:
+                hint = (hint + "  " if hint else "") + tr("settings.no_key_needed")
+        self.hint_model.setText(hint)
 
     def _load_values(self):
         self.api_key_edit.setText(load_api_key())
@@ -455,16 +532,18 @@ class SettingsDialog(QDialog):
             self.language_combo.setCurrentIndex(lang_idx)
         self._on_language_changed()
 
-        # Restore saved provider + model
+        # Restore saved provider + per-provider key/base_url/model
         saved_provider = load_ai_provider()
         idx = self.provider_combo.findText(saved_provider)
         if idx >= 0:
             self.provider_combo.setCurrentIndex(idx)
         self._on_provider_changed(saved_provider)
-        saved_model = load_ai_model()
-        midx = self.model_combo.findText(saved_model)
-        if midx >= 0:
-            self.model_combo.setCurrentIndex(midx)
+        # One-time migration: legacy global model → per-provider slot
+        legacy_model = load_ai_model()
+        slot = f"ai_model_{saved_provider.lower()}"
+        if not QSettings("CAN-Space", "CAN-Space").value(slot, "", type=str) \
+                and legacy_model:
+            self.model_combo.setCurrentText(legacy_model)
 
         # Restore saved vehicle pack
         pidx = self.vehicle_pack_combo.findData(load_vehicle_pack())
@@ -495,7 +574,11 @@ class SettingsDialog(QDialog):
         if groq_key:
             save_groq_key(groq_key)
         save_ai_provider(self.provider_combo.currentText())
-        save_ai_model(self.model_combo.currentText())
+        provider = self.provider_combo.currentText()
+        save_provider_key(provider, self.provider_key_edit.text().strip())
+        save_provider_base_url(provider, self.base_url_edit.text().strip())
+        save_provider_model(provider, self.model_combo.currentText().strip())
+        save_ai_model(self.model_combo.currentText())  # legacy global slot
         save_language(self.language_combo.currentData() or current_language())
         save_vehicle_pack(self.vehicle_pack_combo.currentData() or "generic")
 
@@ -615,6 +698,12 @@ class SettingsDialog(QDialog):
 
     def get_ai_model(self) -> str:
         return self.model_combo.currentText()
+
+    def get_provider_key(self) -> str:
+        return self.provider_key_edit.text().strip()
+
+    def get_base_url(self) -> str:
+        return self.base_url_edit.text().strip()
 
     def get_vehicle_pack(self) -> str:
         return self.vehicle_pack_combo.currentData() or "generic"

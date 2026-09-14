@@ -27,8 +27,9 @@ class AIEngineTab(QWidget):
         self._api_key    = ""
         self._groq_key   = ""
         self._provider   = "Anthropic"
-        self._model      = "claude-sonnet-4-6"
+        self._model      = "claude-sonnet-5"
         self._vehicle_pack = "generic"
+        self._base_url   = ""
         self._queue:     list  = []
         self._worker     = None
         self._current_id = ""
@@ -52,11 +53,12 @@ class AIEngineTab(QWidget):
 
     def set_ai_config(self, provider: str, model: str,
                       groq_key: str = "", api_key: str = "",
-                      vehicle_pack: str = "generic"):
+                      vehicle_pack: str = "generic", base_url: str = ""):
         self._provider     = provider
         self._model        = model
         self._groq_key     = groq_key
         self._vehicle_pack = vehicle_pack
+        self._base_url     = base_url
         if api_key:
             self._api_key = api_key
         self._update_provider_ui()
@@ -539,8 +541,9 @@ class AIEngineTab(QWidget):
                 self._advance_queue(self._current_id)
             return
         active_key = self._groq_key if self._provider == "Groq" else self._api_key
-        # Ollama is a local server — no API key required.
-        if self._provider != "Ollama" and not active_key:
+        # Local servers (e.g. Ollama) need no API key — driven by the registry.
+        from core.ai_client import get_provider
+        if get_provider(self._provider).needs_key and not active_key:
             self.response_text.setPlainText(
                 tr("ai.no_api_key", provider=self._provider)
             )
@@ -584,6 +587,7 @@ class AIEngineTab(QWidget):
             model=self._model,
             groq_key=self._groq_key,
             vehicle_pack=self._vehicle_pack,
+            base_url=self._base_url,
             ml_insights=ml_insights,
         )
         self._worker.chunk_received.connect(self._on_chunk)
@@ -687,7 +691,8 @@ class AIEngineTab(QWidget):
         if not question:
             return
         active_key = self._groq_key if self._provider == "Groq" else self._api_key
-        if self._provider != "Ollama" and not active_key:
+        from core.ai_client import get_provider
+        if get_provider(self._provider).needs_key and not active_key:
             self.nl_response.setPlainText(
                 tr("ai.no_api_key", provider=self._provider)
             )
@@ -738,6 +743,7 @@ class AIEngineTab(QWidget):
             model=self._model,
             groq_key=self._groq_key,
             vehicle_pack=self._vehicle_pack,
+            base_url=self._base_url,
         )
         self._nl_worker.chunk_received.connect(
             lambda t: self.nl_response.insertPlainText(t)

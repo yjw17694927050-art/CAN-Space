@@ -59,9 +59,11 @@
 - [x] （可选）首次启动最小引导：采样→采集→分析→出 DBC。（首次启动自动弹出四步引导对话框一次，视图菜单可随时重开）
 
 ### 2.2 国产大模型接入（PRD R3.2/3.3）
-- [ ] 按序接入：通义千问(DashScope) → DeepSeek → Kimi(Moonshot) → 智谱 GLM → 豆包/火山方舟（至少 3 家先行）。
-- [ ] 本地 Qwen 依托已有 Ollama 支持（零成本）验证。
-- [ ] 设置界面：每 provider 独立 base_url / api_key / model 配置。
+- [x] 按序接入：通义千问(DashScope) → DeepSeek → Kimi(Moonshot) → 智谱 GLM → 豆包/火山方舟（至少 3 家先行）。（已接入 4 家：千问/DeepSeek/Kimi/GLM，均走 OpenAI 兼容端点；火山方舟等可通过自定义 base_url 接入）
+- [x] 本地 Qwen 依托已有 Ollama 支持（零成本）验证。（Ollama 模型列表含 qwen2.5，needs_key=False 免密钥）
+- [x] 设置界面：每 provider 独立 base_url / api_key / model 配置。（key 存 keyring 分槽、base_url/model 存 QSettings；model 下拉可编辑自定义新模型；切换 provider 自动暂存编辑；Anthropic/Groq 旧槽位自动回落兼容）
+
+> 说明：各家默认模型名（qwen-plus / deepseek-chat / moonshot-v1-8k / glm-4-flash）为公开文档中长期稳定型号；新模型可直接在设置页模型框输入，无需等版本更新。
 
 ### 2.3 可信度基建（汽车测试工程师视角的可靠底线）
 - [ ] 时间戳标注来源（PC 时间 vs CAN 硬件时间戳）并可视化区分。

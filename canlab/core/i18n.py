@@ -45,6 +45,11 @@ _ZH = {
     "settings.active_ai": "当前 AI 提供商",
     "settings.vehicle_pack": "车型知识包",
     "settings.reset": "重置为默认",
+    "settings.api_key": "API 密钥",
+    "settings.base_url": "接口地址",
+    "settings.show": "显示",
+    "settings.key_hint": "获取密钥：{url}",
+    "settings.no_key_needed": "本地服务，无需密钥",
     # view menu (P2.1)
     "menu.view": "视图",
     "view.simple_mode": "精简模式",
@@ -573,6 +578,11 @@ _EN = {
     "settings.active_ai": "Active AI Provider",
     "settings.vehicle_pack": "Vehicle knowledge pack",
     "settings.reset": "Reset to defaults",
+    "settings.api_key": "API Key",
+    "settings.base_url": "Base URL",
+    "settings.show": "Show",
+    "settings.key_hint": "Get a key: {url}",
+    "settings.no_key_needed": "Local server — no API key needed",
     # view menu (P2.1)
     "menu.view": "View",
     "view.simple_mode": "Simple Mode",

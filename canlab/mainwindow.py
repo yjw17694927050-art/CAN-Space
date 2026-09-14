@@ -37,6 +37,7 @@ from ui.animations import PulsingDot, CountUpLabel
 from settings_dialog import (
     SettingsDialog, load_api_key, load_gh_token,
     load_groq_key, load_ai_provider, load_ai_model, load_vehicle_pack,
+    load_provider_key, load_provider_model, load_provider_base_url,
 )
 from onboarding_dialog import maybe_show_onboarding, show_onboarding
 
@@ -162,12 +163,14 @@ class MainWindow(QMainWindow):
         self._frame_rate_timer.start()
 
         self.ai_tab.set_api_key(self._api_key)
+        _provider = load_ai_provider()
         self.ai_tab.set_ai_config(
-            provider=load_ai_provider(),
-            model=load_ai_model(),
+            provider=_provider,
+            model=load_provider_model(_provider),
             groq_key=load_groq_key(),
-            api_key=self._api_key,
+            api_key=load_provider_key(_provider) or self._api_key,
             vehicle_pack=load_vehicle_pack(),
+            base_url=load_provider_base_url(_provider),
         )
         self._load_plugins()
 
@@ -1083,8 +1086,9 @@ class MainWindow(QMainWindow):
                 provider=dlg.get_ai_provider(),
                 model=dlg.get_ai_model(),
                 groq_key=dlg.get_groq_key(),
-                api_key=self._api_key,
+                api_key=dlg.get_provider_key() or self._api_key,
                 vehicle_pack=dlg.get_vehicle_pack(),
+                base_url=dlg.get_base_url(),
             )
             gh_url = dlg.get_github_url()
             if gh_url and not self.gh_url_edit.text().strip():
