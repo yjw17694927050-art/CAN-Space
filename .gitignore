@@ -46,3 +46,16 @@ htmlcov/
 # Nested third-party repo (CSS Electronics skills) — keep out of this repo
 can-bus-reverse-engineering-skills/
 can-bus-reverse-engineering-skills
+
+# Ad-hoc verify/debug scripts and tool artifacts (root project only)
+/_probe.py
+/_verify_checksum.py
+/_verify_mi.py
+/Read
+
+# TRAE HTML share-package output
+.trae-html-share-packages/
+
+# Local working docs (interview guide, superpowers plans/specs) — not tracked
+docs/canlab-interview-guide/
+docs/superpowers/
