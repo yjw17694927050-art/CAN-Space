@@ -10,6 +10,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
 STATUS_COLORS = {
@@ -20,10 +21,12 @@ STATUS_COLORS = {
 }
 
 
-class IntelligenceTab(QWidget):
+class IntelligenceTab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_comm_worker",)
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state = get_state()
+        self._comm_worker = None
         self._build_ui()
         self._state.frames_loaded.connect(self._on_frames_loaded)
         self._state.dbc_updated.connect(self._on_dbc_updated)
@@ -492,6 +495,8 @@ class IntelligenceTab(QWidget):
     # ── Community Profiles ────────────────────────────────────────────────────
 
     def _comm_fetch(self):
+        if not self.worker_slot_available("_comm_worker"):
+            return
         from core.community_sync import CommunitySyncWorker
         url = getattr(self._state, "community_profiles_url", "")
         if not url:

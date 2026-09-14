@@ -12,12 +12,22 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
-class InjectionTab(QWidget):
+class InjectionTab(LifecycleTabMixin, QWidget):
+    worker_attrs = (
+        "_send_once_worker", "_inj_worker", "_replay_worker",
+        "_scan_worker", "_fuzz_worker", "_seq_worker",
+    )
+    timer_attrs = ("_trigger_timer",)
+
+    def stop_can_tasks(self):
+        self.shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state           = get_state()
+        self._send_once_worker = None
         self._inj_worker      = None
         self._replay_worker   = None
         self._trigger_timer   = QTimer()
@@ -302,6 +312,8 @@ class InjectionTab(QWidget):
         return self.sig_combo.itemData(idx)
 
     def _send_once(self):
+        if self._send_once_worker and self._send_once_worker.isRunning():
+            return
         sig = self._get_selected_sig()
         if not sig:
             QMessageBox.information(self, tr("inject.msgNoSig.title"),
@@ -327,18 +339,37 @@ class InjectionTab(QWidget):
         if self.chk_checksum.isChecked() and len(data) > 0:
             data[-1] = hyundai_checksum(bytes(data), mid)
         extended = bool(sig.get("extended")) or mid > 0x7FF
-        import can
-        msg = can.Message(arbitration_id=mid, data=bytes(data),
-                          is_extended_id=extended)
-        try:
-            bus.send(msg)
-            self.lbl_inj_status.setText(
-                tr("inject.sent", mid=mid, data=" ".join(f"{b:02X}" for b in data))
+        from core.can_operations import inject_once
+        from ui.can_operation_worker import CanOperationWorker
+
+        self.btn_send_once.setEnabled(False)
+        worker = CanOperationWorker(
+            inject_once, bus, mid, bytes(data), extended, parent=self
+        )
+        self._send_once_worker = worker
+        worker.succeeded.connect(self._on_send_once_success)
+        worker.failed.connect(self._on_send_once_error)
+        worker.finished.connect(self._on_send_once_finished)
+        worker.start()
+
+    def _on_send_once_success(self, message):
+        data = bytes(message.data)
+        self.lbl_inj_status.setText(
+            tr(
+                "inject.sent",
+                mid=message.arbitration_id,
+                data=" ".join(f"{byte:02X}" for byte in data),
             )
-            self.lbl_inj_status.setStyleSheet(f"color:{COLORS['green']}")
-        except Exception as e:
-            self.lbl_inj_status.setText(f"Error: {e}")
-            self.lbl_inj_status.setStyleSheet(f"color:{COLORS['error']}")
+        )
+        self.lbl_inj_status.setStyleSheet(f"color:{COLORS['green']}")
+
+    def _on_send_once_error(self, error: str):
+        self.lbl_inj_status.setText(f"Error: {error}")
+        self.lbl_inj_status.setStyleSheet(f"color:{COLORS['error']}")
+
+    def _on_send_once_finished(self):
+        self.btn_send_once.setEnabled(True)
+        self._send_once_worker = None
 
     def _toggle_loop(self):
         if self._inj_worker and self._inj_worker.isRunning():

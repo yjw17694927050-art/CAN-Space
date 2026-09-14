@@ -24,6 +24,7 @@ import ast
 import json
 import os
 import time
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -180,11 +181,14 @@ class SecurityAccessWorker(QThread):
         self._bf_key_len   = bf_key_len
         self._bf_delay_ms  = bf_delay_ms
         self._running      = True
+        self._stop_event   = threading.Event()
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         self.quit()
-        self.wait(3000)
+        if QThread.currentThread() is not self:
+            self.wait(3000)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -198,8 +202,10 @@ class SecurityAccessWorker(QThread):
             return None
         try:
             from core.isotp import ISOTPSession
-            session = ISOTPSession(self._bus, self._ecu_addr, self._ecu_addr + 0x08)
-            return session.send(data, timeout=timeout)
+            with ISOTPSession(
+                self._bus, self._ecu_addr, self._ecu_addr + 0x08
+            ) as session:
+                return session.send(data, timeout=timeout)
         except Exception as e:
             self.error.emit(str(e))
             return None
@@ -270,7 +276,8 @@ class SecurityAccessWorker(QThread):
             if not self._open_session():
                 self.finished.emit()
                 return
-            time.sleep(0.1)
+            if self._stop_event.wait(0.1):
+                return
 
             if self._mode == "AUTO":
                 self._run_auto()
@@ -342,7 +349,8 @@ class SecurityAccessWorker(QThread):
                 return
 
             # Re-request seed for next attempt (ECU resets it after each send)
-            time.sleep(0.1)
+            if self._stop_event.wait(0.1):
+                return
             self._send_tester_present()
             seed = self._request_seed()
             if seed is None or seed == b"":
@@ -421,7 +429,8 @@ class SecurityAccessWorker(QThread):
 
             # Re-request seed periodically — many ECUs change it each round
             if i % 1 == 0:  # every attempt
-                time.sleep(delay_s)
+                if self._stop_event.wait(delay_s):
+                    return
                 self._send_tester_present()
                 seed = self._request_seed()
                 if seed is None:

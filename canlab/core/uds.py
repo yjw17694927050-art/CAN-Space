@@ -121,7 +121,10 @@ class UDSScanner(QThread):
     def __init__(self, bus, mode: str = "PID", ecu_addr: int = 0x7DF,
                  parent=None, allow_unsafe: bool = False):
         super().__init__(parent)
-        self._bus      = bus
+        from core.can_service import protocol_bus
+        self._bus      = protocol_bus(
+            bus, range(0x7E8, 0x7F0), transaction_key="diagnostic"
+        )
         self._mode     = mode       # "PID" | "DTC" | "DEEP" | "SERVICES"
         self._ecu_addr = ecu_addr   # 0x7DF = functional, 0x7E0-0x7EF = physical
         self._running  = True
@@ -134,15 +137,19 @@ class UDSScanner(QThread):
         self._running = False
 
     def run(self):
-        if self._mode == "PID":
-            self._scan_pids()
-        elif self._mode == "DTC":
-            self._read_dtc()
-        elif self._mode == "DEEP":
-            self._deep_scan()
-        elif self._mode == "SERVICES":
-            self._scan_services()
-        self.finished.emit()
+        from core.can_service import close_protocol_bus
+        try:
+            if self._mode == "PID":
+                self._scan_pids()
+            elif self._mode == "DTC":
+                self._read_dtc()
+            elif self._mode == "DEEP":
+                self._deep_scan()
+            elif self._mode == "SERVICES":
+                self._scan_services()
+            self.finished.emit()
+        finally:
+            close_protocol_bus(self._bus)
 
     def _send_to(self, arb_id: int, data: bytes, timeout: float = 0.5):
         """

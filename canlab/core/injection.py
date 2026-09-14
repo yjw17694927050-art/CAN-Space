@@ -1,5 +1,6 @@
 """Signal injection: pack a value into a CAN frame and send it."""
 import struct
+import threading
 from PyQt6.QtCore import QThread, pyqtSignal
 
 
@@ -89,7 +90,8 @@ class InjectionWorker(QThread):
                  apply_counter: bool = False, extended: bool | None = None,
                  parent=None):
         super().__init__(parent)
-        self._bus            = bus
+        from core.can_service import secure_bus
+        self._bus            = secure_bus(bus)
         self._sig            = sig
         self._value          = value
         self._period_ms      = period_ms
@@ -98,12 +100,13 @@ class InjectionWorker(QThread):
         self._extended       = extended
         self._counter        = 0
         self._running        = True
+        self._stop_event     = threading.Event()
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
 
     def run(self):
-        import time
         import can
         from core.safety import require_armed, BusNotArmedError
         from core.canid import normalize_id
@@ -138,7 +141,7 @@ class InjectionWorker(QThread):
                 break
             except Exception as e:
                 self.error.emit(str(e))
-            time.sleep(self._period_ms / 1000.0)
+            self._stop_event.wait(self._period_ms / 1000.0)
 
     def set_value(self, v: float):
         self._value = v

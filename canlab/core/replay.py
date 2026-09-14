@@ -15,7 +15,8 @@ class ReplayWorker(QThread):
     def __init__(self, bus, frames_df: pd.DataFrame,
                  speed: float = 1.0, loop: bool = False, parent=None):
         super().__init__(parent)
-        self._bus      = bus
+        from core.can_service import secure_bus
+        self._bus      = secure_bus(bus)
         self._df       = frames_df.copy()
         self._speed    = min(max(0.1, speed), 100.0)   # clamp: no unbounded flood
         self._running  = True
@@ -26,7 +27,8 @@ class ReplayWorker(QThread):
     def stop(self):
         self._running = False
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self:
+            self.wait(2000)
 
     def pause(self):
         self._paused = True

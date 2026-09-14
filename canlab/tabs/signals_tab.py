@@ -9,6 +9,7 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.signal_analyzer import analyze_all
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 
@@ -40,10 +41,12 @@ class AnalyzeWorker(QThread):
         self.done.emit(result)
 
 
-class SignalsTab(QWidget):
+class SignalsTab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_worker",)
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state       = get_state()
+        self._worker      = None
         self._signals_df  = pd.DataFrame()
         self._filter_type = "ALL"
         self._build_ui()
@@ -102,6 +105,8 @@ class SignalsTab(QWidget):
         self._run_classify()
 
     def _run_classify(self):
+        if not self.worker_slot_available("_worker"):
+            return
         df = self._state.frames_df
         if df.empty:
             return

@@ -75,3 +75,24 @@ and performance defects. Every fix has a regression test in
 - **candump CAN FD.** FD frames (`id##flags+data`) were mangled by the classic
   single-`#` parser. `.log` files are now sniffed for FD frames and routed to
   the FD-aware parser.
+
+## 2026-09-14 architecture hardening
+
+- **One CAN owner and one receiver.** `CanCoordinator` owns the physical Bus,
+  performs the only `recv()`, fans every frame to capture, and routes subscribed
+  IDs to protocol endpoints. Same-channel diagnostic transactions are serialized.
+- **Transmit gate at the boundary.** Coordinator endpoints and bare-Bus test
+  adapters check ARM TX immediately before every physical `send()`, including
+  ISO-TP flow-control/consecutive frames, XCP, OBD/UDS, injection, replay,
+  fuzzing, gateway forwarding, DTC clearing, and REST injection.
+- **Tab-owned lifecycle.** Tabs declare their workers and timers through one
+  `shutdown()` contract. The main window stops REST and Bus users before the
+  CAN owner, waits with bounded timeouts, and reports instead of hiding failures.
+- **Hard frame cap.** Loading, project/direct assignment, and live chunks use a
+  shared newest-N retention path. Non-positive `max_frames` is invalid and
+  raises `ValueError`; imports report kept and discarded counts.
+- **Verified GitHub identity.** Explicit branch/tree/blob scope is preserved.
+  Cache identity includes owner, repository, branch, full path, and blob SHA;
+  downloads are size-bounded, SHA-checked, and atomically installed.
+- **Truthful test documentation.** README and AGENT no longer freeze pass counts.
+  `pytest -rs` is the source of truth for optional-dependency skip reasons.

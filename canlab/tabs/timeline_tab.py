@@ -23,12 +23,19 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 BYTE_COLS = [f"B{i}" for i in range(8)]
 MAX_ROWS  = 8
 
 
-class TimelineTab(QWidget):
+class TimelineTab(LifecycleTabMixin, QWidget):
+    timer_attrs = ("_vid_timer",)
+
+    def shutdown(self):
+        if self._player is not None:
+            self._player.stop()
+        super().shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state      = get_state()

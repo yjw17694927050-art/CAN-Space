@@ -30,6 +30,7 @@ class AppState(QObject):
     frames_updated    = pyqtSignal()
     source_added      = pyqtSignal(str, int)
     repo_loaded       = pyqtSignal(dict)
+    frames_truncated  = pyqtSignal(int, int, int)  # original, kept, dropped
 
     # New signals for advanced features
     project_loaded      = pyqtSignal()
@@ -74,12 +75,13 @@ class AppState(QObject):
         self._frames_base:   pd.DataFrame = pd.DataFrame()
         self._frame_chunks:  list         = []
         self._frames_cache:  pd.DataFrame = None
+        self._frame_count:   int          = 0
         # Cap on total frames kept in memory. Prevents OOM on long captures.
-        # When exceeded, the oldest chunks are dropped.
-        self.max_frames:     int          = 500_000
+        self._max_frames:    int          = 500_000
         self.selected_id:      str          = ""
         self.sources:          list         = []
         self.can_bus           = None
+        self.can_service       = None
         self.is_connected:     bool         = False
         self.dbc_signals:      list         = []
         self.analyzed_ids:     dict         = {}
@@ -153,11 +155,72 @@ class AppState(QObject):
 
     @frames_df.setter
     def frames_df(self, df: pd.DataFrame):
-        # Direct assignment (project load, transforms) replaces everything and
-        # collapses any pending live chunks.
-        self._frames_base  = df if df is not None else pd.DataFrame()
+        self._replace_frames(df, emit_truncation=True)
+
+    @property
+    def max_frames(self) -> int:
+        return self._max_frames
+
+    @max_frames.setter
+    def max_frames(self, value: int):
+        if isinstance(value, bool):
+            raise ValueError("max_frames must be a positive integer")
+        try:
+            normalized = value.__index__()
+        except (AttributeError, TypeError):
+            raise ValueError("max_frames must be a positive integer") from None
+        if normalized <= 0:
+            raise ValueError("max_frames must be greater than zero")
+        self._max_frames = normalized
+        if hasattr(self, "_frame_count"):
+            original = self._frame_count
+            self._trim_to_limit()
+            if self._frame_count != original:
+                self.frames_truncated.emit(
+                    original, self._frame_count, original - self._frame_count
+                )
+
+    def _replace_frames(self, df: pd.DataFrame | None,
+                        emit_truncation: bool = False) -> tuple[int, int]:
+        incoming = df if df is not None else pd.DataFrame()
+        original = len(incoming)
+        if original > self._max_frames:
+            incoming = incoming.iloc[-self._max_frames:].copy()
+        self._frames_base = incoming
         self._frame_chunks = []
         self._frames_cache = self._frames_base
+        self._frame_count = len(incoming)
+        if emit_truncation and original > self._frame_count:
+            self.frames_truncated.emit(
+                original, self._frame_count, original - self._frame_count
+            )
+        return original, self._frame_count
+
+    def _trim_to_limit(self) -> None:
+        excess = self._frame_count - self._max_frames
+        if excess <= 0:
+            return
+
+        base_len = len(self._frames_base)
+        if base_len:
+            if excess >= base_len:
+                self._frames_base = self._frames_base.iloc[0:0].copy()
+                excess -= base_len
+            else:
+                self._frames_base = self._frames_base.iloc[excess:].copy()
+                excess = 0
+
+        while excess > 0 and self._frame_chunks:
+            chunk = self._frame_chunks[0]
+            if excess >= len(chunk):
+                excess -= len(chunk)
+                self._frame_chunks.pop(0)
+            else:
+                self._frame_chunks[0] = chunk.iloc[excess:].copy()
+                excess = 0
+
+        self._frame_count = min(self._frame_count, self._max_frames)
+        self._frames_cache = None
 
     def select_id(self, hex_id: str):
         self.selected_id = hex_id
@@ -165,11 +228,18 @@ class AppState(QObject):
 
     def load_frames(self, df: pd.DataFrame, source_name: str,
                     timestamp_source: str = TS_SOURCE_LOG):
-        self.frames_df = _ensure_ts_source(df, timestamp_source)
-        count = len(self._frames_base)
-        self.sources.append({"name": source_name, "count": count})
-        self.frames_loaded.emit(count)
-        self.source_added.emit(source_name, count)
+        tagged = _ensure_ts_source(df, timestamp_source)
+        original, kept = self._replace_frames(tagged, emit_truncation=True)
+        dropped = original - kept
+        self.sources.append({
+            "name": source_name,
+            "count": kept,
+            "original_count": original,
+            "kept_count": kept,
+            "dropped_count": dropped,
+        })
+        self.frames_loaded.emit(kept)
+        self.source_added.emit(source_name, kept)
         self.frames_updated.emit()
 
     def append_frames(self, new_df: pd.DataFrame,
@@ -177,16 +247,16 @@ class AppState(QObject):
         if new_df is None or new_df.empty:
             return
         new_df = _ensure_ts_source(new_df, timestamp_source)
+        if len(new_df) >= self._max_frames:
+            self._replace_frames(new_df.iloc[-self._max_frames:].copy())
+            self.frames_updated.emit()
+            return
         # O(chunk): just stash the chunk and invalidate the cache. The full
         # DataFrame is rebuilt lazily on the next read (throttled by the UI).
         self._frame_chunks.append(new_df)
+        self._frame_count += len(new_df)
         self._frames_cache = None
-        # Enforce memory cap: drop oldest chunks when total exceeds max_frames.
-        total = (len(self._frames_base) +
-                 sum(len(c) for c in self._frame_chunks))
-        while total > self.max_frames and self._frame_chunks:
-            dropped = self._frame_chunks.pop(0)
-            total -= len(dropped)
+        self._trim_to_limit()
         self.frames_updated.emit()
 
     def set_repo_context(self, info: dict, readme: str, url: str):

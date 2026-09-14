@@ -20,12 +20,17 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
-class AutoRETab(QWidget):
+class AutoRETab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_ctr_worker", "_entropy_worker", "_corr_worker")
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state = get_state()
+        self._ctr_worker = None
+        self._entropy_worker = None
+        self._corr_worker = None
         self._build_ui()
         self._state.frames_loaded.connect(self._on_frames_loaded)
 
@@ -79,6 +84,8 @@ class AutoRETab(QWidget):
         return w
 
     def _run_counter_checksum(self):
+        if not self.worker_slot_available("_ctr_worker"):
+            return
         df = self._state.frames_df
         if df.empty:
             QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
@@ -189,6 +196,8 @@ class AutoRETab(QWidget):
         return w
 
     def _run_entropy(self):
+        if not self.worker_slot_available("_entropy_worker"):
+            return
         df = self._state.frames_df
         if df.empty:
             QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))
@@ -317,6 +326,8 @@ class AutoRETab(QWidget):
         return w
 
     def _run_correlation(self):
+        if not self.worker_slot_available("_corr_worker"):
+            return
         df = self._state.frames_df
         if df.empty:
             QMessageBox.information(self, tr("autore.msg.nodata"), tr("autore.msg.load_log"))

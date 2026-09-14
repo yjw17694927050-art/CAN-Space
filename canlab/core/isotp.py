@@ -16,6 +16,8 @@ Usage:
 import time
 from typing import Optional
 
+from core.safety import BusNotArmedError
+
 # Flow Control constants
 FC_CTS   = 0x30   # Continue To Send
 FC_WAIT  = 0x31
@@ -33,7 +35,12 @@ class ISOTPSession:
 
     def __init__(self, bus, tx_id: int, rx_id: int, extended_id: bool = False,
                  padding: int = 0x00):
-        self._bus      = bus
+        from core.can_service import CanCoordinator, protocol_bus
+
+        self._owns_bus = isinstance(bus, CanCoordinator)
+        self._bus      = protocol_bus(
+            bus, {rx_id}, transaction_key="diagnostic"
+        )
         self._tx_id    = tx_id
         self._rx_id    = rx_id
         self._ext      = bool(extended_id)
@@ -46,6 +53,24 @@ class ISOTPSession:
         return frame + bytes([self._padding]) * (8 - len(frame))
 
     def send(self, data: bytes, timeout: float = 1.0) -> Optional[bytes]:
+        """Run one complete request/response inside its endpoint transaction."""
+        from core.can_service import bus_transaction
+        with bus_transaction(self._bus):
+            return self._send_transaction(data, timeout)
+
+    def close(self) -> None:
+        """Release the coordinator subscription owned by this session."""
+        from core.can_service import close_protocol_bus
+        if self._owns_bus:
+            close_protocol_bus(self._bus)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()
+
+    def _send_transaction(self, data: bytes, timeout: float) -> Optional[bytes]:
         """
         Send `data` and return the fully assembled response, or None on
         timeout / error.
@@ -66,8 +91,10 @@ class ISOTPSession:
             try:
                 self._bus.send(can.Message(arbitration_id=self._tx_id,
                                            data=frame, is_extended_id=self._ext))
+            except BusNotArmedError:
+                raise
             except Exception:
-                return None
+                raise
         else:
             # First Frame + Flow-Control handshake + Consecutive Frames.
             # (Previously only the FF was sent, silently truncating every
@@ -78,8 +105,10 @@ class ISOTPSession:
             try:
                 self._bus.send(can.Message(arbitration_id=self._tx_id,
                                            data=ff, is_extended_id=self._ext))
+            except BusNotArmedError:
+                raise
             except Exception:
-                return None
+                raise
             if not self._send_consecutive_frames(data, timeout):
                 return None
 
@@ -118,8 +147,10 @@ class ISOTPSession:
             try:
                 self._bus.send(can.Message(arbitration_id=self._tx_id,
                                            data=cf, is_extended_id=self._ext))
+            except BusNotArmedError:
+                raise
             except Exception:
-                return False
+                raise
             idx += 7
             sn = (sn + 1) & 0x0F
             sent_in_block += 1
@@ -226,8 +257,10 @@ class ISOTPSession:
                 is_extended_id=self._ext,
             )
             self._bus.send(msg)
+        except BusNotArmedError:
+            raise
         except Exception:
-            pass
+            raise
 
 
 def recv_isotp(bus, rx_id: int, timeout: float = 1.0) -> Optional[bytes]:
@@ -239,4 +272,7 @@ def recv_isotp(bus, rx_id: int, timeout: float = 1.0) -> Optional[bytes]:
     session  = ISOTPSession(bus, tx_id=dummy_tx, rx_id=rx_id)
     # passive=True: do not inject Flow Control while merely sniffing, which would
     # otherwise put frames on the bus and could corrupt another tester's transfer.
-    return session._receive(None, timeout, passive=True)
+    try:
+        return session._receive(None, timeout, passive=True)
+    finally:
+        session.close()

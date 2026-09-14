@@ -20,8 +20,9 @@ def _state():
     return st
 
 
-def _client():
-    return TestClient(_build_app(lambda: _state(), token="secret-token"))
+def _client(state=None):
+    current = state or _state()
+    return TestClient(_build_app(lambda: current, token="secret-token"))
 
 
 def test_dashboard_is_open_and_html():
@@ -51,3 +52,25 @@ def test_inject_blocked_when_disarmed():
                json={"id": "200", "data": "01 02"})
     # can_bus is None -> 503, and disarmed -> 409; either way not a success/200.
     assert r.status_code in (409, 503)
+
+
+def test_inject_with_connected_bus_disarmed_returns_409_without_send():
+    class Bus:
+        def __init__(self):
+            self.sent = []
+
+        def send(self, message):
+            self.sent.append(message)
+
+    state = _state()
+    state.can_bus = Bus()
+    safety.set_armed(False)
+
+    response = _client(state).post(
+        "/inject",
+        headers={"X-API-Token": "secret-token"},
+        json={"id": "200", "data": "01 02"},
+    )
+
+    assert response.status_code == 409
+    assert state.can_bus.sent == []

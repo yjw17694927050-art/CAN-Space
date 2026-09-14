@@ -86,10 +86,10 @@ class _BusReader(threading.Thread):
         self._bus   = bus
         self._src   = src
         self._q     = q
-        self._stop  = stop_evt
+        self._stop_event = stop_evt
 
     def run(self):
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             try:
                 msg = self._bus.recv(timeout=0.05)
                 if msg:
@@ -102,7 +102,7 @@ class _BusReader(threading.Thread):
                     except queue.Full:
                         pass
             except Exception:
-                if not self._stop.is_set():
+                if not self._stop_event.is_set():
                     time.sleep(0.01)
 
 
@@ -122,6 +122,7 @@ class GatewayWorker(QThread):
         self._cfg_b   = bus_b_cfg
         self._rules   = list(rules or [])
         self._running = True
+        self._readers = []
 
         self._stats = {
             "fwd_a_b":  0,
@@ -141,7 +142,8 @@ class GatewayWorker(QThread):
     def stop(self):
         self._running = False
         self.quit()
-        self.wait(3000)
+        if QThread.currentThread() is not self:
+            self.wait(3000)
 
     def run(self):
         from core.safety import require_armed, is_armed, BusNotArmedError
@@ -157,10 +159,18 @@ class GatewayWorker(QThread):
             self.error.emit(f"Could not open bus: {e}")
             return
 
+        from core.can_service import secure_bus
+        safe_bus_a = secure_bus(bus_a)
+        safe_bus_b = secure_bus(bus_b)
+
         q        = queue.Queue(maxsize=4096)
         stop_evt = threading.Event()
-        _BusReader(bus_a, "A→B", q, stop_evt).start()
-        _BusReader(bus_b, "B→A", q, stop_evt).start()
+        self._readers = [
+            _BusReader(bus_a, "A→B", q, stop_evt),
+            _BusReader(bus_b, "B→A", q, stop_evt),
+        ]
+        for reader in self._readers:
+            reader.start()
 
         try:
             while self._running:
@@ -210,7 +220,7 @@ class GatewayWorker(QThread):
                     self.frame_forwarded.emit(src, new_arb, new_data)
 
                 # Forward to the opposite bus
-                dest_bus = bus_b if src == "A→B" else bus_a
+                dest_bus = safe_bus_b if src == "A→B" else safe_bus_a
                 try:
                     fwd_msg = can.Message(
                         arbitration_id=new_arb,
@@ -232,14 +242,18 @@ class GatewayWorker(QThread):
 
         finally:
             stop_evt.set()
-            try:
-                bus_a.shutdown()
-            except Exception:
-                pass
-            try:
-                bus_b.shutdown()
-            except Exception:
-                pass
+            for reader in self._readers:
+                reader.join(0.5)
+                if reader.is_alive():
+                    self.error.emit(
+                        f"Gateway reader {reader.name} did not stop within 0.5 seconds"
+                    )
+            self._readers.clear()
+            for label, bus in (("A", bus_a), ("B", bus_b)):
+                try:
+                    bus.shutdown()
+                except Exception as exc:
+                    self.error.emit(f"Bus {label} shutdown failed: {exc}")
 
     def _maybe_emit_stats(self):
         now = time.monotonic()

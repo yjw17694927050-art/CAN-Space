@@ -82,11 +82,23 @@ class CommunitySyncWorker(QThread):
         super().__init__(parent)
         self._url   = url
         self._abort = False
+        self._response = None
 
     def stop(self):
         self._abort = True
+        close_error = None
+        try:
+            if self._response is not None:
+                self._response.close()
+        except Exception as exc:
+            close_error = exc
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self and not self.wait(2000):
+            raise TimeoutError("Community sync worker did not stop within 2 seconds")
+        if close_error is not None:
+            raise RuntimeError(
+                f"Community response close failed: {close_error}"
+            ) from close_error
 
     def run(self):
         try:
@@ -96,10 +108,14 @@ class CommunitySyncWorker(QThread):
                 headers={"User-Agent": "CANLAB/1.0"},
             )
             with urllib.request.urlopen(req, timeout=15) as resp:
+                self._response = resp
                 raw = resp.read().decode("utf-8", errors="replace")
         except Exception as e:
-            self.error.emit(f"Fetch failed: {e}")
+            if not self._abort:
+                self.error.emit(f"Fetch failed: {e}")
             return
+        finally:
+            self._response = None
 
         if self._abort:
             return

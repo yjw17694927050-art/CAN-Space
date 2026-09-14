@@ -8,6 +8,7 @@ anomaly frame arrives, the scan aborts and emits safety_cutout.
 Reuses InjectionWorker internals (pack_signal, hyundai_checksum).
 """
 import time
+import threading
 from PyQt6.QtCore import QThread, pyqtSignal
 
 
@@ -26,7 +27,8 @@ class SafetyScanWorker(QThread):
                  apply_counter: bool  = True,
                  parent=None):
         super().__init__(parent)
-        self._bus             = bus
+        from core.can_service import secure_bus
+        self._bus             = secure_bus(bus)
         self._sig             = sig
         self._min             = float(min_val)
         self._max             = float(max_val)
@@ -37,13 +39,16 @@ class SafetyScanWorker(QThread):
         self._apply_checksum  = apply_checksum
         self._apply_counter   = apply_counter
         self._abort           = False
+        self._stop_event      = threading.Event()
         self._last_watchdog_ts = time.monotonic()
         self._counter         = 0
 
     def stop(self):
         self._abort = True
+        self._stop_event.set()
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self:
+            self.wait(2000)
 
     # Called from mainwindow when a live frame with watchdog_id arrives
     def notify_watchdog(self):
@@ -101,7 +106,7 @@ class SafetyScanWorker(QThread):
                     self.cutout.emit(value, f"Watchdog 0x{self._watchdog_id:03X} silent for {elapsed*1000:.0f}ms")
                     return
 
-            time.sleep(self._step_delay)
+            self._stop_event.wait(self._step_delay)
 
         if not self._abort:
             self.scan_finished.emit()

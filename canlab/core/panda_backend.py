@@ -101,6 +101,8 @@ class PandaBus:
         instead of pretending the send succeeded, so injection/replay/fuzz
         surface the misconfiguration rather than appearing to work.
         """
+        from core.safety import require_armed
+        require_armed()
         if self._safety_model == "SAFETY_NOOUTPUT":
             raise RuntimeError(
                 "Panda is in SAFETY_NOOUTPUT mode — transmit is disabled by the "

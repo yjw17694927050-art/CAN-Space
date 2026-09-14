@@ -1,299 +1,155 @@
-﻿# CAN-Space — CAN Bus Reverse-Engineering Workbench
+# CAN-Space
 
-> **本项目为派生项目 / This is a derivative project**
->
-> **CAN-Space** 是基于开源项目 **CAN-Space**（由 Sherin Joseph Roy 开发，
-> https://github.com/Sherin-SEF-AI/CAN-Space，MIT 许可证）二次开发的个人化版本。
-> 本 README 保留了上游的完整功能说明、安全警告与致谢，作为功能溯源与合规依据。
-> 二次开发在保留上游全部功能与安全机制的前提下，聚焦中文支持、界面简化、国产大模型
-> 接入与个人化工作流。详见 [PRD.md](PRD.md) 与 [ROADMAP.md](ROADMAP.md)。
+CAN-Space 是一个面向汽车 CAN 总线分析、诊断和逆向工程的 PyQt6 桌面工作站。
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python)](https://www.python.org)
-[![PyQt6](https://img.shields.io/badge/GUI-PyQt6-green?style=flat-square)](https://pypi.org/project/PyQt6/)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+本项目基于开源项目 [CANlab](https://github.com/Sherin-SEF-AI/CANlab)（MIT 许可证）二次开发。我们保留并扩展了原项目的分析工作台，同时加入中文界面、车辆诊断、人工智能/机器学习辅助能力，以及更严格的总线安全、并发和线程生命周期控制。当前版本适合实验室、台架和离线日志分析，仍属于 Alpha（内测）阶段。
 
-A desktop (PyQt6) tool for reverse-engineering CAN bus data: load a capture,
-inspect frames and signals, run offline analysis to find counters / checksums /
-signal boundaries, optionally get AI help interpreting an ID, and build/export a
-DBC. It also includes diagnostics (UDS, ISO-TP, J1939, OBD-II, XCP, DoIP) and —
-for isolated bench use only — injection, replay, fuzzing, and a MitM gateway.
+## 我们在这个开源项目上做了什么
 
-> **Status:** actively developed, single-author project. It runs and is covered
-> by an automated test suite (see [Testing](#testing)), but treat it as **alpha**:
-> some features need optional dependencies, some analysis methods are heuristics
-> (see [Honest limitations](#honest-limitations)), and it has not been validated
-> across a wide range of real vehicles.
+### 1. CAN 总线访问安全与并发控制
 
----
+- 增加统一的 `CanCoordinator`，集中管理物理总线、接收线程、订阅分发和停止顺序。
+- 同一物理总线只保留一个接收线程，避免多个线程同时 `recv()` 造成竞争。
+- 通过 `SafeBusAdapter` 统一发送入口；发送默认关闭，必须显式启用 ARM。
+- 图形界面、REST 接口、脚本和诊断发送都经过同一安全门控，不允许旁路发帧。
+- 同一诊断通道上的请求/响应使用事务锁，避免并发请求串包。
+- 双通道网关分别维护各自的物理总线和接收线程。
 
-> ## ⚠️ Safety
->
-> The **INJECTION** and **GATEWAY** features can transmit frames onto a bus.
-> **Use them only on isolated bench setups** — a benchtop ECU, `vcan0`, or
-> dedicated lab hardware. Injecting or forwarding frames on a live vehicle bus
-> can interfere with braking, steering, and airbag systems.
->
-> Built-in guards:
-> - A safety acknowledgement dialog on first launch.
-> - A global **ARM TX** toolbar toggle, **disarmed by default** — injection,
->   replay, fuzzing, gateway forwarding, and the REST `/inject` endpoint all
->   refuse to transmit until you explicitly arm it.
-> - The UDS service scan probes only read-only services unless you tick
->   "Include destructive services" and confirm.
+### 2. 图形界面与后台线程生命周期
 
----
+- 注入和 DTC 扫描改为后台 worker，图形界面线程只负责界面和信号槽。
+- DTC 清除只接受 UDS `0x54` 正响应，拒绝把其他正响应误判为成功。
+- 可停止等待和周期任务都使用可唤醒机制，关闭窗口时不会长时间卡住。
+- 每个标签页负责停止自己创建的 worker；应用退出时按依赖顺序关闭 worker、接收线程和物理总线。
 
-## Run from source
+### 3. 日志帧数硬上限
 
-This is the supported, verified way to run it.
+- 对文件导入、文本导入、批量回放、分析和绘图入口统一执行 `max_frames` 限制。
+- 超过上限时保留最新的 N 帧，并报告截断状态。
+- 使用惰性分块读取和有界缓存，避免大日志一次性加载到内存。
+- `max_frames <= 0` 视为无效配置并抛出 `ValueError`。
+- 时间戳来源和回放截断信息会保留在结果元数据中。
 
-```bash
-git clone https://github.com/yjw17694927050-art/CAN.git
-cd CAN
-python3 -m venv .venv && source .venv/bin/activate
+### 4. GitHub 内容与身份校验
+
+- GitHub 读取范围显式限定为分支（branch）、目录树（tree）或文件（blob），避免把任意 API 路径当成文件。
+- 对仓库、分支、路径和 SHA 做安全解析与身份校验。
+- 处理非 UTF-8 内容、文件大小上限、原子写入和 SHA-256 校验，避免部分下载覆盖本地文件。
+
+### 5. 分析、诊断和工程化能力
+
+- 支持 UDS、ISO-TP、OBD-II、J1939、XCP 和 DoIP 等常见协议的分析辅助。
+- 提供离线字段识别、信号聚类、异常检测、DBC/ARXML/CAN Matrix 导入导出和代码生成。
+- 支持人工智能上下文构建、机器学习辅助分析以及可选视觉参考能力。
+- 增加 REST 接口和 MCP 服务，便于自动化测试与外部工具集成。
+
+## 架构概览
+
+```text
+PyQt6 图形界面 / 功能页
+    │ 信号/槽；不直接执行 CAN 输入输出
+    ▼
+AppState + CanCoordinator
+    ├─ 唯一物理总线所有者
+    ├─ 唯一接收线程
+    ├─ ARM 安全发送入口
+    ├─ 按 ID 订阅与分发
+    └─ 有序停止与物理总线关闭
+    ▼
+python-can / Panda / 硬件适配器
+```
+
+## 功能页面
+
+| 页面 | 主要用途 |
+| --- | --- |
+| 帧监视（FRAMES） | 实时帧监视、过滤、导入和导出 |
+| 信号分析（SIGNALS） | 信号解析、位域查看和解码 |
+| 曲线绘制（PLOT） | 信号曲线、统计和时间序列分析 |
+| 人工智能引擎（AI ENGINE） | 人工智能辅助解释、上下文和报告 |
+| DBC 构建（DBC BUILDER） | DBC 创建、编辑和验证 |
+| 代码生成（CODE GEN） | 根据数据库和协议生成代码 |
+| 智能分析（INTELLIGENCE） | 异常、聚类和未知信号分析 |
+| 帧注入（INJECTION） | 受 ARM 保护的周期/单帧注入 |
+| 诊断（DIAGNOSTICS） | UDS/ISO-TP 诊断请求与响应 |
+| 仪表盘（DASHBOARD） | 自定义仪表盘和实时指标 |
+| 自动逆向（AUTO-RE） | 自动逆向和字段候选识别 |
+| 时间线（TIMELINE） | 日志时间线、回放和事件定位 |
+| OBD-II 诊断（OBD-II） | OBD-II 服务与 PID 辅助 |
+| 机器学习智能（ML INTEL） | 机器学习特征和分类辅助 |
+| 网关（GATEWAY） | 双通道转发与路由实验 |
+
+## 支持的数据与接口
+
+日志和数据库：SavvyCAN CSV、candump `.log`、pcap/pcapng、BLF、ASC、MDF4、openpilot `rlog/qlog`（按可用依赖启用），以及 DBC、ARXML、CAN Matrix 等格式。
+
+硬件和服务：
+
+- 通过 `python-can` 支持 SocketCAN、PCAN、Vector、virtual、serial/slcan 等接口。
+- 支持 Panda 适配器和项目内的硬件抽象层。
+- REST 服务默认绑定本机回环地址，可配置令牌；`POST /inject` 仍受 ARM 保护。
+- 提供 MCP 服务，供自动化工具调用分析能力。
+
+## 安全边界
+
+本工具可能向真实 CAN 总线发送数据。请只在隔离台架、仿真器或明确授权的测试环境使用。
+
+- 发送默认关闭，必须显式启用 ARM；取消 ARM 会停止发送。
+- 诊断和注入操作会显示确认或安全提示。
+- 不建议在行驶中的车辆上运行，也不提供量产刷写、标定或安全绕过保证。
+- 使用硬件前请确认终端电阻、供电、总线速率和收发器连接正确。
+
+## 从源码运行
+
+```powershell
+git clone https://github.com/yjw17694927050-art/CAN-Space.git
+cd CAN-Space
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Optional AI providers (all optional; the app works fully offline without them):
-export ANTHROPIC_API_KEY="sk-ant-..."   # Anthropic Claude
-export GROQ_API_KEY="gsk_..."           # Groq
-# or run a local Ollama server for offline AI (no key)
-
-cd canlab            # source root — imports are relative to here
-python3 main.py
+cd canlab
+python main.py
 ```
 
-Python 3.11+ is recommended (developed/tested on 3.12).
-
----
-
-## What it does — 15 tabs
-
-All 15 tabs build and render (verified by an automated smoke test that loads the
-bundled sample log and cycles every tab).
-
-| # | Tab | What it does |
-|---|---|---|
-| 1 | **FRAMES** | Raw frame table with per-byte delta highlighting, hex/bus filter, freeze/follow. |
-| 2 | **SIGNALS** | DBC-decoded signal table (physical value, unit, entropy, suspected byte role). |
-| 3 | **PLOT** | Multi-signal time series; per-byte traces; mouse-wheel zoom. |
-| 4 | **AI ENGINE** | Send an ID to Anthropic, Groq, or a local Ollama model; offline ML findings are injected into the prompt. Persistent memory across sessions. |
-| 5 | **DBC BUILDER** | Visual signal editor. Import: DBC, ARXML, CAN matrix. Export: DBC, openpilot DBC, CANdb++, ARXML (experimental), Wireshark Lua. |
-| 6 | **CODE GEN** | Generate Python or C parsing code from DBC definitions. |
-| 7 | **INTELLIGENCE** | Cross-ID byte Pearson correlation with lag sweep; embedding similarity; fingerprint. |
-| 8 | **INJECTION** | Signal inject, fuzzer, trigger rules, replay (loop + scrubber). Gated by ARM TX. |
-| 9 | **DIAGNOSTICS** | UDS scan, ISO-TP, J1939 (incl. DM1 DTCs), OBD-II Mode 01, bus-health monitor. |
-| 10 | **DASHBOARD** | Byte-value heatmap, message timeline, physical overlay gauges. |
-| 11 | **AUTO-RE** | Counter/checksum detection and entropy-boundary analysis across IDs (runs in worker threads). |
-| 12 | **TIMELINE** | Scrubbable multi-ID event timeline + a video-sync sub-tab. |
-| 13 | **OBD-II** | Live PID gauge grid; auto-discovers supported PIDs (incl. continuation windows). |
-| 14 | **ML INTEL** | Byte-role classification, anomaly detection, change-point detection, embedding search. |
-| 15 | **GATEWAY** | Bidirectional CAN MitM bridge with ordered Pass/Block/Modify rules. Gated by ARM TX. |
-
-### Screenshots
-
-![FRAMES](docs/screenshots/01_frames.png)
-![AI ENGINE](docs/screenshots/04_ai_engine.png)
-![AUTO-RE](docs/screenshots/11_auto_re.png)
-
-<details><summary>More screenshots</summary>
-
-![SIGNALS](docs/screenshots/02_signals.png)
-![DBC BUILDER](docs/screenshots/05_dbc_builder.png)
-![INTELLIGENCE](docs/screenshots/07_intelligence.png)
-![DIAGNOSTICS](docs/screenshots/09_diagnostics.png)
-![DASHBOARD](docs/screenshots/10_dashboard.png)
-![OBD-II](docs/screenshots/13_obd_ii.png)
-![ML INTEL](docs/screenshots/14_ml_intel.png)
-
-</details>
-
----
-
-## Supported log formats
-
-| Format | Notes |
-|---|---|
-| SavvyCAN CSV | GVRET/SavvyCAN export |
-| candump `.log` | `candump -l` output |
-| pcap / pcapng | Linux SocketCAN linktype 227 (via dpkt) |
-| Vector BLF | via python-can `BLFReader` |
-| Vector ASC | via python-can `ASCReader` |
-| MDF4 `.mf4` / `.mdf` | e.g. CANedge — **requires** `pip install asammdf` |
-| openpilot `.rlog` / `.qlog` | **requires** pycapnp + the cereal `log.capnp` schema; fails with a clear error if missing (it does not guess) |
-
----
-
-## Analysis / ML (offline, no API key)
-
-| Feature | Module | Notes |
-|---|---|---|
-| Byte role classifier | `core/signal_classifier.py` | COUNTER / CHECKSUM / BOOLEAN / PHYSICAL / PADDING per byte (heuristic). |
-| Counter & checksum detection | `core/counter_checksum_detector.py`, `core/checksum_guesser.py` | Tests several checksum algorithms per byte; reports a match fraction. |
-| Cross-ID correlation | `core/correlation_engine.py` | Pearson r per byte pair with nearest-timestamp alignment and a lag sweep. |
-| Anomaly detection | `core/anomaly_detector.py` | Z-score per byte and Isolation Forest on the frame vector. |
-| Entropy boundaries | `core/entropy_boundary.py` | Per-bit entropy to suggest signal edges. |
-| Multiplexer detection | `core/mux_detector.py` | Finds a mode-selector byte and per-mode active bytes. |
-| Reference calibration | `core/reference_calibrate.py` | See below. |
-
-These are **heuristics that suggest candidates**, not guarantees — always verify.
-The checksum "confidence" is a train/validate match fraction over a chronological
-split, not a statistical proof; the DASHBOARD heatmap shows message-timing
-co-occurrence, not signal-value correlation (byte-value correlation lives in the
-INTELLIGENCE tab / `correlation_engine.py`).
-
----
-
-## Reference-driven calibration
-
-`core/reference_calibrate.py` searches for the CAN field (ID, byte range,
-endianness) whose values best fit a **physical reference** by least squares, and
-reports scale/offset with an R² **PASS / UNCONFIRMED** verdict. The reference can
-be a CSV of `timestamp,value` (Tools → *Calibrate signal from reference CSV*), or
-a value OCR'd from a dashboard video (`core/vision_reference.py`, needs
-`opencv-python` + `rapidocr`). "Signal unavailable" sentinel codes are masked and
-the fitted scale is snapped to neat OEM values when that barely changes the decode
-(these two refinements are adapted from CSS Electronics' RE skills — see
-[Acknowledgements](#acknowledgements)).
-
----
-
-## Diagnostics
-
-| Protocol | Module | Notes |
-|---|---|---|
-| UDS (ISO 14229) | `core/uds.py` | DTC read, ECU info (DIDs), service scan (read-only by default). |
-| ISO-TP (ISO 15765-2) | `core/isotp.py` | Single- and multi-frame TX (FC handshake + consecutive frames) and reassembly. |
-| J1939 | `core/j1939.py` | PGN decoding + DM1 active-DTC (SPN/FMI/CM/OC) decode. |
-| OBD-II (SAE J1979) | `core/obd2_pids.py` | 26-PID table; supported-PID discovery across continuation windows. |
-| XCP over CAN | `core/xcp.py` | Read-only client (CONNECT / UPLOAD / SHORT_UPLOAD) + a poll worker. No memory writes. |
-| DoIP (ISO 13400) | `core/doip.py` | Vehicle discovery, routing activation, UDS-over-IP (stdlib sockets). |
-
----
-
-## DBC ecosystem
-
-| Format | Import | Export |
-|---|---|---|
-| Standard DBC | Yes | Yes (cantools-parseable) |
-| openpilot DBC | Yes (opendbc cross-reference) | Yes (cantools-parseable) |
-| Vector CANdb++ | No | Yes (`BA_DEF_` blocks) |
-| AUTOSAR ARXML 4.3 | Yes | **Experimental** — round-trips within CAN-Space but is **not** validated against the full AUTOSAR schema; don't rely on it in external AUTOSAR tools yet |
-| Wireshark Lua dissector | No | Yes (little- and big-endian; big-endian verified against cantools) |
-| Excel/CSV CAN matrix | Yes | No |
-
-Multiplexed signals are supported on DBC export (`SG_ M` / `m<n>`).
-
-**opendbc matching** (Tools → *Match against opendbc*): fetches the real
-`commaai/opendbc` library, caches it, and ranks how well your capture's IDs match
-each OEM DBC. First run needs network access.
-
----
-
-## AI engine
-
-Providers: **Anthropic** (`claude-sonnet-5` / `claude-opus-4-8`), **Groq**
-(Llama 3.x), and **Ollama** (any local model, no API key). Before an AI call,
-CAN-Space runs the offline detectors and injects their findings (byte roles, message
-type/period, checksum guess, similar IDs) into the prompt so the model reasons on
-structured facts rather than raw hex. Configure in Settings → API Keys.
-
----
-
-## Integrations
-
-| Capability | Module | Notes |
-|---|---|---|
-| REST API + live web dashboard | `core/rest_api.py` | Loopback-only, **token-authenticated** (`X-API-Token`, shown on start). `GET /` serves a self-contained live-frames page; `/inject` also requires ARM TX. |
-| MCP server | `mcp_server.py` | Exposes load_log / list_ids / detectors / correlate / opendbc-match / mux / calibrate as MCP tools so Claude Code can drive the analysis loop. |
-| Decoded time-series export | `core/timeseries_export.py` | Export a Timestamp×signal matrix to CSV or Parquet. |
-| Plugin SDK | `docs/PLUGINS.md` | Documented `register(app)` API + two example plugins; the loader reads plugin metadata statically and only runs code on explicit activation. |
-| Panda backend | `core/panda_backend.py` | comma.ai Panda as a python-can-compatible bus (safety mode selectable). |
-
----
-
-## REST API
-
-Start it from the **REST API** toolbar toggle. It binds to **127.0.0.1:8765**
-and prints a per-session token; every request needs an `X-API-Token` header.
+Linux/macOS：
 
 ```bash
-GET  /            # live web dashboard (HTML, open)
-GET  /frames      # last N frames  (?n=N)
-GET  /signals     # decoded DBC signals
-GET  /status      # connection + frame count
-GET  /memory      # AI memory entries
-POST /inject      # inject a frame — requires token AND ARM TX
-                  # {"id":"0x200","data":"01 02 03 04 05 06 07 08"}
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd canlab
+python main.py
 ```
 
----
+部分硬件、MDF4、视觉和 AI 功能依赖额外驱动或可选 Python 包；缺少可选依赖时，基础离线分析仍可运行。
 
-## Testing
+## 测试与验证
 
-```bash
-python -m pytest tests/ -q        # 148 passed, 2 skipped (MDF needs asammdf; MCP needs the official SDK)
+在 Windows PowerShell 中：
+
+```powershell
+$env:QT_QPA_PLATFORM = "offscreen"
+.\.venv\Scripts\python.exe -m compileall -q canlab tests
+.\.venv\Scripts\python.exe -m pytest tests -q -rs
+.\.venv\Scripts\python.exe -m pip check
+git diff --check
 ```
 
-Tests cover ID normalization, ISO-TP single/multi-frame transmit (PCI framing),
-the ARM safety gate (including mid-run disarm), UDS destructive-service
-classification and DTC/PID decoding, OBD-II PID decoding, ML NaN-safety,
-BLF/ASC/candump-FD import, opendbc matching, reference calibration + refinements,
-multiplexer detection, J1939 DM1, XCP, DoIP, the REST auth + NaN-safe JSON model,
-DBC round-trip (message length + extended-ID), big-endian/signed injection
-packing, the lazy live-frame store, the vectorized correlation aligner, and an
-import smoke test of every tab.
+截至 2026-09-14 的本地验证结果为 **287 个通过、1 个跳过**。跳过项是视觉参考测试，原因是当前环境未安装 OpenCV/RapidOCR；测试数量会随回归用例变化，请以 `pytest -rs` 的实际输出为准。
 
----
+回归测试覆盖 CAN 单一接收者、发送 ARM、诊断事务锁、worker 停止、帧数上限、GitHub 内容校验、REST 生命周期以及跨平台路径行为。
 
-## Recent fixes
+## 当前限制
 
-A deep-audit pass fixed a batch of protocol/correctness, safety, and performance
-defects (ISO-TP framing, UDS/DTC/OBD decoding, cantools ≥ 40 DBC decoding, DBC
-round-trip, replay DLC, REST NaN-safe JSON, per-frame ARM-TX re-checks, injection
-byte-order packing, plugin consent, and an O(n²)→O(n) live-capture store). See
-[docs/AUDIT_FIXES.md](docs/AUDIT_FIXES.md) for the full list; each item has a
-regression test in `tests/test_audit_fixes.py`.
+- 尚未覆盖所有真实车辆、硬件型号和极端总线负载场景。
+- 部分信号识别和异常检测仍是启发式结果，需要人工确认。
+- ARXML 导出属于实验性能力，未承诺覆盖完整 OEM schema。
+- MDF4、视觉和部分 AI 能力依赖可选包；当前仓库不提供二进制安装包。
 
-## Honest limitations
+## 上游、许可证与贡献
 
-- **Not validated on many real vehicles.** Signal identification is heuristic —
-  verify every result before trusting it.
-- **ARXML export is experimental** and not AUTOSAR-schema-validated.
-- **openpilot rlog import** needs pycapnp + the cereal schema; without it, it
-  raises rather than producing data.
-- **MDF4** import needs `asammdf`; **vision OCR** needs `opencv-python` +
-  `rapidocr` + `onnxruntime` (heavy, optional).
-- CAN FD parsing/decoding is partial in places.
-- No prebuilt binary is offered here — run from source.
+- 上游项目：[Sherin-SEF-AI/CANlab](https://github.com/Sherin-SEF-AI/CANlab)
+- 当前仓库：[yjw17694927050-art/CAN-Space](https://github.com/yjw17694927050-art/CAN-Space)
+- 本项目遵循上游 MIT 许可证；新增代码和文档请继续保留原作者及许可证信息。
 
----
-
-## System requirements
-
-- Linux, macOS, or Windows with Python 3.11+
-- 4 GB RAM (8 GB recommended for the ML features)
-- Optional: SocketCAN for live hardware; comma.ai Panda; a CANsub/other
-  python-can-supported adapter
-
-Live hardware is supported via [python-can](https://python-can.readthedocs.io)
-(`socketcan`, `pcan`, `kvaser`, `virtual`, `serial`, `slcan`, …) and the Panda
-backend. **Two hardware CAN channels are required for the MitM/Gateway feature.**
-
----
-
-## Acknowledgements
-
-The calibration refinements in `core/calibrate_refine.py` (sentinel masking and
-OEM scale/offset snapping) are adapted from CSS Electronics'
-[CAN bus reverse engineering skills](https://github.com/CSS-Electronics/can-bus-reverse-engineering-skills)
-(MIT, © 2026 CSS Electronics).
-
----
-
-## License
-
-MIT License. See [LICENSE](LICENSE).
-
-**作者（本派生 Author of this fork）:** 本仓库维护者
-**仓库（Repository）:** https://github.com/yjw17694927050-art/CAN
-**上游（Upstream）:** CAN-Space — https://github.com/Sherin-SEF-AI/CAN-Space （作者 Sherin Joseph Roy，MIT）
+欢迎提交问题（issue）和拉取请求（pull request）。涉及真实总线、诊断和硬件的改动，请同时附上仿真或离线回归测试结果。

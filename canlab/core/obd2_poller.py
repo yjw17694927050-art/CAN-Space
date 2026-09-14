@@ -1,5 +1,6 @@
 """OBD-II Mode 01 live poller using ISO-TP physical addressing."""
 import time
+import threading
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from core.obd2_pids import PID_TABLE, decode_pid, supported_pids_from_mask
@@ -22,38 +23,42 @@ class OBD2Poller(QThread):
         self._interval     = max(50, interval_ms) / 1000.0  # seconds
         self._running      = True
         self._discover     = discover_only
+        self._stop_event   = threading.Event()
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self:
+            self.wait(2000)
 
     def run(self):
         from core.isotp import ISOTPSession
         session = ISOTPSession(self._bus, tx_id=_TX_ID, rx_id=_RX_ID)
+        try:
+            if self._discover:
+                self._do_discover(session)
+                return
 
-        if self._discover:
-            self._do_discover(session)
-            return
-
-        while self._running:
-            for pid in self._pids:
-                if not self._running:
-                    break
-                try:
-                    # Service payload only — ISOTPSession adds the PCI byte.
-                    # Passing a pre-built "02 01 <pid>" produced "03 02 01 <pid>"
-                    # on the wire, which no ECU answers.
-                    payload = session.send(bytes([0x01, pid]), timeout=0.5)
-                    if payload and len(payload) >= 3 and payload[0] == 0x41 and payload[1] == pid:
-                        data = payload[2:]
-                        value = decode_pid(pid, data)
-                        if value is not None:
-                            unit = PID_TABLE.get(pid, {}).get("unit", "")
-                            self.pid_value.emit(pid, value, unit)
-                except Exception as e:
-                    self.error.emit(f"PID 0x{pid:02X}: {e}")
-            time.sleep(self._interval)
+            while self._running:
+                for pid in self._pids:
+                    if not self._running:
+                        break
+                    try:
+                        # Service payload only — ISOTPSession adds the PCI byte.
+                        payload = session.send(bytes([0x01, pid]), timeout=0.5)
+                        if (payload and len(payload) >= 3
+                                and payload[0] == 0x41 and payload[1] == pid):
+                            data = payload[2:]
+                            value = decode_pid(pid, data)
+                            if value is not None:
+                                unit = PID_TABLE.get(pid, {}).get("unit", "")
+                                self.pid_value.emit(pid, value, unit)
+                    except Exception as e:
+                        self.error.emit(f"PID 0x{pid:02X}: {e}")
+                self._stop_event.wait(self._interval)
+        finally:
+            session.close()
 
     def _do_discover(self, session):
         """Query the 'supported PIDs' masks (0x00, 0x20, 0x40, …) and emit them.

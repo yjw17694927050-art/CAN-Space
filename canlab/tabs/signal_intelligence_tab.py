@@ -27,6 +27,7 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
 from core.signal_classifier import ROLE_COLORS
+from ui.lifecycle import LifecycleTabMixin
 
 
 # ── Background workers ────────────────────────────────────────────────────────
@@ -184,7 +185,12 @@ class EmbeddingWorker(QThread):
 
 # ── Main tab ──────────────────────────────────────────────────────────────────
 
-class SignalIntelligenceTab(QWidget):
+class SignalIntelligenceTab(LifecycleTabMixin, QWidget):
+    worker_collections = ("_workers",)
+
+    def shutdown(self):
+        self._batch_queue = []
+        super().shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state          = get_state()

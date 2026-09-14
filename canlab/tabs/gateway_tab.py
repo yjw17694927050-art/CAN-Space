@@ -11,6 +11,7 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.canid import normalize_id
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
 _DIR_OPTIONS    = ["A→B", "B→A", "Both"]
@@ -18,7 +19,11 @@ _ACTION_OPTIONS = ["Pass", "Block", "Modify"]
 _IFACE_OPTIONS  = ["socketcan", "pcan", "kvaser", "virtual", "usb2can", "serial"]
 
 
-class GatewayTab(QWidget):
+class GatewayTab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_worker",)
+
+    def stop_can_tasks(self):
+        self.shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state   = get_state()

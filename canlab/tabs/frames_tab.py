@@ -9,6 +9,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 BYTE_COLS   = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 ALL_COLUMNS = ["Timestamp", "ID", "Bus", "DLC"] + BYTE_COLS + ["Delta"]
@@ -24,7 +25,8 @@ def _active_byte_cols(df) -> list:
         return BYTE_COLS
 
 
-class FramesTab(QWidget):
+class FramesTab(LifecycleTabMixin, QWidget):
+    timer_attrs = ("_refresh_timer",)
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state      = get_state()

@@ -23,7 +23,8 @@ class FuzzWorker(QThread):
                  strategy: str = "boundary", rate_hz: float = 10.0,
                  max_iter: int = 1000, parent=None):
         super().__init__(parent)
-        self._bus       = bus
+        from core.can_service import secure_bus
+        self._bus       = secure_bus(bus)
         self._target_id = target_id
         self._dlc       = dlc
         self._strategy  = strategy
@@ -39,7 +40,8 @@ class FuzzWorker(QThread):
     def stop(self):
         self._abort = True
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self:
+            self.wait(2000)
 
     def run(self):
         import can

@@ -1,11 +1,15 @@
 ﻿import os
 import can
+import threading
+import logging
 import pandas as pd
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QSplitter,
     QTabWidget, QToolBar, QStatusBar, QLabel, QFileDialog,
     QMessageBox, QLineEdit, QPushButton, QProgressBar, QMenu,
 )
+
+logger = logging.getLogger(__name__)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSettings, QUrl
 from PyQt6.QtGui import QFont, QColor, QAction, QDesktopServices
 
@@ -60,42 +64,59 @@ class LiveCANWorker(QThread):
         self._data_bitrate = data_bitrate
         self._injected_bus = bus   # pre-created Bus (Panda, virtual, etc.)
         self._running     = True
-        self._bus         = None
+        self._bus         = None   # CanCoordinator after receiver startup
+        self._stop_event  = threading.Event()
 
     def get_bus(self):
         return self._bus
 
     def run(self):
-        try:
+        from core.can_service import CanCoordinator
+
+        def create_bus():
             if self._injected_bus is not None:
-                self._bus = self._injected_bus
-            else:
-                kwargs = dict(
-                    channel=self._channel,
-                    bustype=self._interface,
-                    bitrate=self._bitrate,
-                )
-                if self._fd:
-                    kwargs["fd"] = True
-                    if self._data_bitrate:
-                        kwargs["data_bitrate"] = self._data_bitrate
-                self._bus = can.interface.Bus(**kwargs)
-            while self._running:
-                msg = self._bus.recv(timeout=0.1)
-                if msg:
-                    self.frame_received.emit(msg)
+                return self._injected_bus
+            kwargs = dict(
+                channel=self._channel,
+                bustype=self._interface,
+                bitrate=self._bitrate,
+            )
+            if self._fd:
+                kwargs["fd"] = True
+                if self._data_bitrate:
+                    kwargs["data_bitrate"] = self._data_bitrate
+            return can.interface.Bus(**kwargs)
+
+        coordinator = CanCoordinator(
+            bus_factory=create_bus,
+            on_message=self.frame_received.emit,
+            on_error=self.error.emit,
+        )
+        try:
+            coordinator.start()
+            if not coordinator.wait_started(5.0):
+                raise RuntimeError("CAN bus did not become ready within 5 seconds")
+            self._bus = coordinator
+            while self._running and coordinator.is_running:
+                self._stop_event.wait(0.05)
         except Exception as e:
             self.error.emit(str(e))
+        finally:
+            if not coordinator.stop(2.0):
+                self.error.emit("CAN receiver did not stop within 2 seconds")
 
     def stop(self):
         self._running = False
-        self.wait(2000)   # let run() exit its recv loop before shutting the bus
-        # Don't shut down a caller-injected bus (Panda/virtual) we didn't open.
-        if self._bus and self._injected_bus is None:
-            try:
-                self._bus.shutdown()
-            except Exception:
-                pass
+        self._stop_event.set()
+        coordinator = self._bus
+        if coordinator is not None and not coordinator.stop(2.0):
+            message = "CAN receiver did not stop within 2 seconds"
+            self.error.emit(message)
+            raise TimeoutError(message)
+        if QThread.currentThread() is not self and not self.wait(2000):
+            message = "LiveCANWorker did not stop within 2 seconds"
+            self.error.emit(message)
+            raise TimeoutError(message)
 
 
 class MultiBusWorker(QThread):
@@ -528,6 +549,7 @@ class MainWindow(QMainWindow):
     def _connect_signals(self):
         self._state.id_selected.connect(self._on_id_selected)
         self._state.frames_loaded.connect(self._on_frames_loaded)
+        self._state.frames_truncated.connect(self._on_frames_truncated)
         self._state.can_connected.connect(self._on_can_status)
         self._state.repo_loaded.connect(self._on_repo_loaded)
         self._state.fingerprint_matched.connect(self._on_fingerprint)
@@ -798,7 +820,8 @@ class MainWindow(QMainWindow):
             return
         bus = self._live_worker.get_bus()
         if bus is not None:
-            self._state.can_bus      = bus
+            self._state.can_service  = bus
+            self._state.can_bus      = bus  # compatibility: safe facade, never raw Bus
             self._state.is_connected = True
             return
         self._share_bus_attempts += 1
@@ -810,6 +833,11 @@ class MainWindow(QMainWindow):
             )
 
     def _disconnect_can(self):
+        # No task may retain/use the service while its physical Bus is closing.
+        for tab, _key, _core in self._tab_defs:
+            stop_can_tasks = getattr(tab, "stop_can_tasks", None)
+            if callable(stop_can_tasks):
+                stop_can_tasks()
         if self._live_worker:
             self._live_worker.stop()
             self._live_worker = None
@@ -822,6 +850,7 @@ class MainWindow(QMainWindow):
             self._live_rows.clear()
         self._live_last_ts.clear()
         self._state.can_bus      = None
+        self._state.can_service  = None
         self._state.is_connected = False
         self._act_connect.setEnabled(True)
         self._act_disconnect.setEnabled(False)
@@ -1036,11 +1065,12 @@ class MainWindow(QMainWindow):
     def _start_rest_api(self):
         from core.rest_api import RestAPIServer
         try:
-            self._rest_api_server = RestAPIServer(
+            server = RestAPIServer(
                 state_getter=get_state,
                 port=self._state.rest_api_port,
             )
-            self._rest_api_server.start()
+            server.start()
+            self._rest_api_server = server
             self._state.rest_api_running = True
             self._act_rest.setText(f"REST API: ON :{self._state.rest_api_port}")
             token = self._rest_api_server.token
@@ -1056,6 +1086,9 @@ class MainWindow(QMainWindow):
                 "Keep it secret — anyone with this token can inject CAN frames.",
             )
         except Exception as e:
+            self._rest_api_server = None
+            self._state.rest_api_running = False
+            self._act_rest.setText("REST API: OFF")
             QMessageBox.warning(self, "REST API", f"Could not start: {e}")
 
     def _stop_rest_api(self):
@@ -1273,6 +1306,13 @@ class MainWindow(QMainWindow):
         if events and not self._state.frames_df.empty:
             self._correlate_with_events(self._state.frames_df, events)
 
+    def _on_frames_truncated(self, original: int, kept: int, dropped: int):
+        self.statusBar().showMessage(
+            f"Frame limit applied: imported {original}, kept newest {kept}, "
+            f"discarded {dropped} oldest frames.",
+            8000,
+        )
+
     def _on_can_status(self, connected: bool):
         self._can_dot.set_active(connected)
         if connected:
@@ -1297,44 +1337,51 @@ class MainWindow(QMainWindow):
         # objects) are torn down. A running QThread destroyed with its parent
         # raises "QThread: Destroyed while thread is still running" and can crash
         # on exit.
-        self._stop_rest_api()
-        if self._live_worker:
-            self._live_worker.stop()
-            self._live_worker.wait(2000)
-            self._live_worker = None
-        if self._multibus_worker:
-            self._multibus_worker.stop_all()
-            self._multibus_worker = None
-        for w in getattr(self, "_log_workers", []):
-            w.wait(2000)
-        opendbc = getattr(self, "_opendbc_worker", None)
-        if opendbc is not None:
-            opendbc.wait(2000)
-        # Stop tab-level workers (Gateway, Injection, AI Engine, etc.)
-        self._stop_tab_workers()
+        try:
+            self._frame_rate_timer.stop()
+            if self._health_timer is not None:
+                self._health_timer.stop()
+            # REST and tabs may still use CAN, so they must stop before the
+            # coordinator closes the physical bus.
+            self._stop_rest_api()
+            self._stop_tab_workers()
+            if self._live_worker:
+                self._live_worker.stop()
+                self._live_worker = None
+            if self._multibus_worker:
+                self._multibus_worker.stop_all()
+                self._multibus_worker = None
+            for w in getattr(self, "_log_workers", []):
+                w.requestInterruption()
+                w.quit()
+                if w.isRunning() and not w.wait(2000):
+                    raise TimeoutError("log import worker did not stop")
+            opendbc = getattr(self, "_opendbc_worker", None)
+            if opendbc is not None:
+                opendbc.requestInterruption()
+                opendbc.quit()
+                if opendbc.isRunning() and not opendbc.wait(2000):
+                    raise TimeoutError("OpenDBC worker did not stop")
+        except Exception as exc:
+            logger.exception("Application shutdown failed")
+            self.statusBar().showMessage(f"Cannot close: {exc}", 10000)
+            event.ignore()
+            return
         event.accept()
 
     def _stop_tab_workers(self):
-        """Stop background QThreads owned by any tab (visible or hidden)."""
-        worker_attrs = (
-            "_worker", "_inj_worker", "_replay_worker",
-            "_scan_worker", "_fuzz_worker", "_seq_worker", "_nl_worker",
-        )
-        for tab, _key, _core in self._tab_defs:
-            for attr in worker_attrs:
-                worker = getattr(tab, attr, None)
-                if worker is None:
-                    continue
-                try:
-                    if hasattr(worker, "stop"):
-                        worker.stop()
-                    elif hasattr(worker, "quit"):
-                        worker.quit()
-                    if worker.isRunning():
-                        worker.wait(2000)
-                except Exception:
-                    pass
-                setattr(tab, attr, None)
+        """Ask every tab to stop resources it owns; surface any failure."""
+        errors = []
+        for tab, key, _core in self._tab_defs:
+            shutdown = getattr(tab, "shutdown", None)
+            if shutdown is None:
+                continue
+            try:
+                shutdown()
+            except Exception as exc:
+                errors.append(f"{key}: {exc}")
+        if errors:
+            raise RuntimeError("Failed to stop tab workers: " + "; ".join(errors))
 
 
 def _sep() -> QLabel:

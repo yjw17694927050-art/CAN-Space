@@ -1,5 +1,18 @@
-"""Tests for the ISO-TP multi-frame transmit fix (#7)."""
+"""Tests for ISO-TP framing and the mandatory ARM-TX boundary."""
+import pytest
+
 from core.isotp import ISOTPSession
+from core.safety import set_armed
+
+
+@pytest.fixture(autouse=True)
+def _armed_for_transport_tests():
+    """Existing framing tests intentionally transmit; arm only for each test."""
+    set_armed(True)
+    try:
+        yield
+    finally:
+        set_armed(False)
 
 
 class FakeMsg:
@@ -64,3 +77,36 @@ def test_stmin_decode():
     assert ISOTPSession._stmin_seconds(0x0A) == 0.010
     assert abs(ISOTPSession._stmin_seconds(0xF1) - 0.0001) < 1e-9
     assert ISOTPSession._stmin_seconds(0xFF) == 0.0
+
+
+def test_disarmed_session_never_calls_underlying_bus_send():
+    """Removing the transport safety adapter must expose a raw send here."""
+    set_armed(False)
+    bus = ScriptedBus()
+
+    from core.safety import BusNotArmedError
+
+    with pytest.raises(BusNotArmedError):
+        ISOTPSession(bus, tx_id=0x7E0, rx_id=0x7E8).send(
+            bytes([0x10, 0x03]), timeout=0.001
+        )
+
+    assert bus.sent == []
+
+
+def test_disarming_after_first_frame_stops_consecutive_frames():
+    """A running transfer must re-check ARM TX before every later frame."""
+    class DisarmingBus(ScriptedBus):
+        def send(self, msg):
+            super().send(msg)
+            if len(self.sent) == 1:
+                set_armed(False)
+
+    bus = DisarmingBus()
+    with pytest.raises(Exception) as caught:
+        ISOTPSession(bus, tx_id=0x7E0, rx_id=0x7E8).send(
+            bytes(range(12)), timeout=0.05
+        )
+
+    assert caught.type.__name__ == "BusNotArmedError"
+    assert len(bus.sent) == 1

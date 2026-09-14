@@ -6,8 +6,11 @@ structured data the app can use directly.
 import os
 import re
 import base64
+import hashlib
+import tempfile
 import requests
 from pathlib import Path
+from urllib.parse import quote, unquote
 from PyQt6.QtCore import QThread, pyqtSignal, Qt, QObject
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
@@ -19,11 +22,40 @@ from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 
 CACHE_DIR = Path.home() / ".canlab" / "cache"
+MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 
 LOG_EXTS  = {".csv", ".log", ".bag"}
 DBC_EXTS  = {".dbc"}
 DOC_NAMES = {"readme", "readme.md", "readme.txt", "notes.md", "notes.txt",
              "annotations.md", "annotations.txt", "events.md", "events.txt"}
+
+
+def _cache_path(remote_file: dict) -> Path:
+    """Return a collision-resistant path tied to the remote object identity."""
+    identity = "\0".join(str(remote_file.get(key, "")) for key in (
+        "owner", "repo", "branch", "path", "sha",
+    ))
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    name = Path(str(remote_file.get("name", "download"))).name or "download"
+    return CACHE_DIR / digest[:2] / digest / name
+
+
+def _cache_is_valid(path: Path, remote_file: dict) -> bool:
+    if not path.is_file():
+        return False
+    expected_size = int(remote_file.get("size") or 0)
+    actual_size = path.stat().st_size
+    if expected_size > 0 and actual_size != expected_size:
+        return False
+    expected_sha = str(remote_file.get("sha") or "").lower()
+    if re.fullmatch(r"[0-9a-f]{40}", expected_sha):
+        digest = hashlib.sha1()
+        digest.update(f"blob {actual_size}\0".encode("ascii"))
+        with path.open("rb") as cached:
+            for chunk in iter(lambda: cached.read(64 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest() == expected_sha
+    return True
 
 
 # ── URL helpers ────────────────────────────────────────────────────────────────
@@ -42,29 +74,35 @@ def parse_github_url(url: str) -> dict | None:
     # Already an API URL
     m = re.match(r"https://api\.github\.com/repos/([^/]+)/([^/]+)", url)
     if m:
-        return _build_result(m.group(1), m.group(2), "HEAD", "")
+        return _build_result(
+            unquote(m.group(1)), unquote(m.group(2)), "HEAD", "", "root"
+        )
 
     # Browser URL
     m = re.match(r"https://github\.com/([^/]+)/([^/]+)(?:/(tree|blob)/([^/]+)(/.+)?)?", url)
     if m:
-        owner  = m.group(1)
-        repo   = m.group(2)
-        branch = m.group(4) or "HEAD"
-        path   = (m.group(5) or "").lstrip("/")
-        return _build_result(owner, repo, branch, path)
+        owner  = unquote(m.group(1))
+        repo   = unquote(m.group(2))
+        branch = unquote(m.group(4)) if m.group(4) else "HEAD"
+        path   = unquote((m.group(5) or "").lstrip("/"))
+        return _build_result(owner, repo, branch, path, m.group(3) or "root")
 
     return None
 
 
-def _build_result(owner, repo, branch, path):
-    base = f"https://api.github.com/repos/{owner}/{repo}"
+def _build_result(owner, repo, branch, path, kind="root"):
+    encoded_owner = quote(owner, safe="")
+    encoded_repo = quote(repo, safe="")
+    encoded_branch = quote(branch, safe="")
+    base = f"https://api.github.com/repos/{encoded_owner}/{encoded_repo}"
     return {
         "owner":        owner,
         "repo":         repo,
         "branch":       branch,
         "path":         path,
+        "kind":         kind,
         "api_base":     base,
-        "api_tree":     f"{base}/git/trees/{branch}?recursive=1",
+        "api_tree":     f"{base}/git/trees/{encoded_branch}?recursive=1",
         "readme_url":   f"{base}/readme",
     }
 
@@ -80,6 +118,14 @@ class RepoScanWorker(QThread):
         super().__init__(parent)
         self.info  = repo_info
         self.token = token
+        self._abort = False
+        self._active_response = None
+
+    def abort(self):
+        self._abort = True
+        self.requestInterruption()
+        if self._active_response is not None:
+            self._active_response.close()
 
     def _headers(self):
         h = {"Accept": "application/vnd.github+json"}
@@ -91,30 +137,55 @@ class RepoScanWorker(QThread):
         try:
             self.progress.emit("Fetching repo info…")
             r = requests.get(self.info["api_base"], headers=self._headers(), timeout=15)
+            self._active_response = r
             r.raise_for_status()
             meta = r.json()
+            if self._abort:
+                return
 
             self.progress.emit("Walking repo tree…")
-            branch  = meta.get("default_branch", self.info["branch"])
-            tree_url = f"{self.info['api_base']}/git/trees/{branch}?recursive=1"
+            requested_branch = self.info["branch"]
+            branch = (
+                meta.get("default_branch", "HEAD")
+                if requested_branch == "HEAD" else requested_branch
+            )
+            tree_url = (f"{self.info['api_base']}/git/trees/"
+                        f"{quote(branch, safe='')}?recursive=1")
             r = requests.get(tree_url, headers=self._headers(), timeout=30)
+            self._active_response = r
             r.raise_for_status()
             tree = r.json().get("tree", [])
+            if self._abort:
+                return
 
             logs, dbcs, docs = [], [], []
             for item in tree:
                 if item.get("type") != "blob":
                     continue
                 fpath = item["path"]
+                scope = self.info.get("path", "").strip("/")
+                kind = self.info.get("kind", "root")
+                if kind == "blob" and fpath != scope:
+                    continue
+                if kind == "tree" and scope and not (
+                    fpath == scope or fpath.startswith(scope + "/")
+                ):
+                    continue
                 fname = os.path.basename(fpath).lower()
                 ext   = os.path.splitext(fname)[1]
                 dl    = (f"https://raw.githubusercontent.com/"
-                         f"{self.info['owner']}/{self.info['repo']}/{branch}/{fpath}")
+                         f"{quote(self.info['owner'], safe='')}/"
+                         f"{quote(self.info['repo'], safe='')}/"
+                         f"{quote(branch, safe='')}/{quote(fpath, safe='/')}")
                 entry = {
                     "name": os.path.basename(fpath),
                     "path": fpath,
                     "download_url": dl,
                     "size": item.get("size", 0),
+                    "sha": item.get("sha", ""),
+                    "owner": self.info["owner"],
+                    "repo": self.info["repo"],
+                    "branch": branch,
                 }
                 if ext in LOG_EXTS:
                     logs.append(entry)
@@ -126,7 +197,11 @@ class RepoScanWorker(QThread):
             readme_text = ""
             self.progress.emit("Fetching README…")
             try:
-                r = requests.get(self.info["readme_url"], headers=self._headers(), timeout=10)
+                readme_url = (
+                    f"{self.info['readme_url']}?ref={quote(branch, safe='')}"
+                )
+                r = requests.get(readme_url, headers=self._headers(), timeout=10)
+                self._active_response = r
                 if r.ok:
                     data = r.json()
                     content  = data.get("content", "")
@@ -156,13 +231,21 @@ class RepoScanWorker(QThread):
             if code == 403:
                 self.error.emit("GitHub rate limit hit. Add a token in Settings > GitHub.")
             elif code == 404:
-                self.error.emit("Repo not found — check the URL.")
+                if self.info.get("kind") in ("tree", "blob"):
+                    self.error.emit(
+                        "Branch or path not found — check the GitHub URL."
+                    )
+                else:
+                    self.error.emit("Repo not found — check the URL.")
             else:
                 self.error.emit(f"HTTP {code}: {e}")
         except requests.ConnectionError:
             self.error.emit("Network error — check your internet connection.")
         except Exception as e:
-            self.error.emit(str(e))
+            if not self._abort:
+                self.error.emit(str(e))
+        finally:
+            self._active_response = None
 
 
 class BatchDownloadWorker(QThread):
@@ -176,9 +259,13 @@ class BatchDownloadWorker(QThread):
         self.files = files
         self.token = token
         self._abort = False
+        self._active_response = None
 
     def abort(self):
         self._abort = True
+        self.requestInterruption()
+        if self._active_response is not None:
+            self._active_response.close()
 
     def run(self):
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -187,19 +274,67 @@ class BatchDownloadWorker(QThread):
         for i, f in enumerate(self.files):
             if self._abort:
                 break
-            dest = CACHE_DIR / f["name"]
-            if dest.exists():
+            dest = _cache_path(f)
+            if _cache_is_valid(dest, f):
                 results.append(str(dest))
                 self.file_done.emit(f["path"], str(dest))
             else:
+                temp_path = None
                 try:
-                    r = requests.get(f["download_url"], timeout=60, headers=headers)
+                    declared_size = int(f.get("size") or 0)
+                    if declared_size > MAX_DOWNLOAD_BYTES:
+                        raise ValueError(
+                            f"File too large ({declared_size} bytes; "
+                            f"limit {MAX_DOWNLOAD_BYTES})"
+                        )
+                    r = requests.get(
+                        f["download_url"], timeout=60, headers=headers, stream=True
+                    )
+                    self._active_response = r
                     r.raise_for_status()
-                    dest.write_bytes(r.content)
+                    content_length = int(r.headers.get("Content-Length") or 0)
+                    if content_length > MAX_DOWNLOAD_BYTES:
+                        raise ValueError(
+                            f"File too large ({content_length} bytes; "
+                            f"limit {MAX_DOWNLOAD_BYTES})"
+                        )
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    with tempfile.NamedTemporaryFile(
+                        mode="wb", dir=dest.parent, suffix=".part", delete=False
+                    ) as temp_file:
+                        temp_path = Path(temp_file.name)
+                        downloaded = 0
+                        for chunk in r.iter_content(chunk_size=64 * 1024):
+                            if self._abort:
+                                raise InterruptedError("Download cancelled")
+                            if not chunk:
+                                continue
+                            downloaded += len(chunk)
+                            if downloaded > MAX_DOWNLOAD_BYTES:
+                                raise ValueError(
+                                    f"File too large (limit {MAX_DOWNLOAD_BYTES})"
+                                )
+                            temp_file.write(chunk)
+                    if declared_size > 0 and downloaded != declared_size:
+                        raise OSError(
+                            f"Incomplete download: expected {declared_size} bytes, "
+                            f"received {downloaded}"
+                        )
+                    expected_sha = str(f.get("sha") or "").lower()
+                    if (re.fullmatch(r"[0-9a-f]{40}", expected_sha)
+                            and not _cache_is_valid(temp_path, f)):
+                        raise OSError("Downloaded file failed Git blob SHA validation")
+                    os.replace(temp_path, dest)
+                    temp_path = None
                     results.append(str(dest))
                     self.file_done.emit(f["path"], str(dest))
                 except Exception as e:
-                    self.file_error.emit(f["path"], str(e))
+                    if temp_path is not None:
+                        temp_path.unlink(missing_ok=True)
+                    if not self._abort:
+                        self.file_error.emit(f["path"], str(e))
+                finally:
+                    self._active_response = None
             self.progress.emit(i + 1, len(self.files))
         self.all_done.emit(results)
 
@@ -530,12 +665,22 @@ class GitHubRepoDialog(QDialog):
 
     def closeEvent(self, event):
         """Stop all background workers before closing."""
+        errors = []
         for worker in [self._scan_worker, self._dl_worker]:
             if worker and worker.isRunning():
                 if hasattr(worker, "abort"):
                     worker.abort()
                 worker.quit()
-                worker.wait(3000)
+                if not worker.wait(3000):
+                    errors.append(type(worker).__name__)
+        if errors:
+            self._set_status(
+                "Cannot close while workers are still stopping: "
+                + ", ".join(errors),
+                COLORS["error"],
+            )
+            event.ignore()
+            return
         event.accept()
 
     # ── Helpers ───────────────────────────────────────────────────────────────

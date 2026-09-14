@@ -3,10 +3,9 @@ XCP-over-CAN read/measurement client (ASAM MCD-1 XCP).
 
 This is a **read-only** subset of XCP: it lets you CONNECT to an ECU/slave and
 read (measure) internal variables by memory address. It deliberately implements
-*no* memory-write / programming commands (DOWNLOAD, PROGRAM, MODIFY_BITS, …), so
-it never puts a value onto the ECU and therefore never needs CAN-Space's transmit
-safety gate (``core.safety.require_armed``). CONNECT / UPLOAD do send CAN frames,
-but they are pure reads of ECU state — the same category as UDS ReadDataByIdentifier.
+*no* memory-write / programming commands (DOWNLOAD, PROGRAM, MODIFY_BITS, …).
+CONNECT / UPLOAD are still active CAN transmissions, so every command goes
+through CAN-Space's ARM-TX safety facade just like UDS requests.
 
 Transport (XCP on CAN):
     CRO (Command Request Object) : tester -> slave, arbitration id = ``cro_id``
@@ -33,6 +32,7 @@ library present, and the QThread worker mirrors ``OBD2Poller``.
 from __future__ import annotations
 
 import time
+import threading
 from typing import Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
@@ -148,7 +148,12 @@ class XCPClient:
 
     def __init__(self, bus, cro_id: int, dto_id: int, timeout: float = 1.0,
                  byte_order: str = "little", extended_id: bool = False):
-        self._bus = bus
+        from core.can_service import CanCoordinator, protocol_bus
+
+        self._owns_bus = isinstance(bus, CanCoordinator)
+        self._bus = protocol_bus(
+            bus, {dto_id}, transaction_key="diagnostic"
+        )
         self.cro_id = cro_id
         self.dto_id = dto_id
         self.timeout = timeout
@@ -194,6 +199,13 @@ class XCPClient:
         return None
 
     def _command(self, payload: bytes, timeout: Optional[float] = None) -> bytes:
+        """Run one complete XCP command inside its endpoint transaction."""
+        from core.can_service import bus_transaction
+        with bus_transaction(self._bus):
+            return self._command_transaction(payload, timeout)
+
+    def _command_transaction(self, payload: bytes,
+                             timeout: Optional[float] = None) -> bytes:
         """
         Send a command and return the response payload *including* the leading
         0xFF positive-response byte. Raises XCPError on an ERR packet or timeout.
@@ -256,6 +268,12 @@ class XCPClient:
                 self._command(bytes([CMD_DISCONNECT]))
         finally:
             self.connected = False
+
+    def close(self) -> None:
+        """Release this client's routed receive subscription."""
+        from core.can_service import close_protocol_bus
+        if self._owns_bus:
+            close_protocol_bus(self._bus)
 
     def get_status(self) -> dict:
         """
@@ -442,11 +460,14 @@ class XCPPollWorker(QThread):
         self._interval = max(20, interval_ms) / 1000.0
         self._timeout = timeout
         self._running = True
+        self._stop_event = threading.Event()
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         self.quit()
-        self.wait(2000)
+        if QThread.currentThread() is not self:
+            self.wait(2000)
 
     def run(self):
         client = XCPClient(self._bus, self._cro_id, self._dto_id,
@@ -473,10 +494,11 @@ class XCPPollWorker(QThread):
                         self.error.emit(f"{name} @ 0x{address:X}: {e}")
                 if sweep:
                     self.sample.emit(sweep)
-                time.sleep(self._interval)
+                self._stop_event.wait(self._interval)
         finally:
             try:
                 client.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:
+                self.error.emit(f"XCP disconnect failed: {exc}")
+            client.close()
             self.finished.emit()

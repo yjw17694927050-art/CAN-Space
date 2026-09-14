@@ -215,6 +215,21 @@ class AIWorker(QThread):
         self._system_prompt = build_system_prompt(
             vehicle_pack, language=current_language())
         self._full_response = ""
+        self._active_stream = None
+
+    def stop(self):
+        self.requestInterruption()
+        active = self._active_stream
+        close_error = None
+        try:
+            if active is not None and hasattr(active, "close"):
+                active.close()
+        except Exception as exc:
+            close_error = exc
+        if QThread.currentThread() is not self and not self.wait(2000):
+            raise TimeoutError("AI worker did not stop within 2 seconds")
+        if close_error is not None:
+            raise RuntimeError(f"AI stream close failed: {close_error}") from close_error
 
     def run(self):
         if self.spec.kind == "openai_compatible":
@@ -255,16 +270,25 @@ class AIWorker(QThread):
                 system=self._system_prompt,
                 messages=[{"role": "user", "content": prompt}],
             ) as stream:
+                self._active_stream = stream
                 for text in stream.text_stream:
+                    if self.isInterruptionRequested():
+                        return
                     self._full_response += text
                     self.chunk_received.emit(text)
+            self._active_stream = None
             self.finished.emit(self._full_response)
         except anthropic.AuthenticationError:
-            self.error.emit("Invalid Anthropic API key. Check Settings > API Keys.")
+            if not self.isInterruptionRequested():
+                self.error.emit("Invalid Anthropic API key. Check Settings > API Keys.")
         except anthropic.RateLimitError:
-            self.error.emit("Anthropic rate limit exceeded. Wait a moment and retry.")
+            if not self.isInterruptionRequested():
+                self.error.emit("Anthropic rate limit exceeded. Wait a moment and retry.")
         except Exception as e:
-            self.error.emit(str(e))
+            if not self.isInterruptionRequested():
+                self.error.emit(str(e))
+        finally:
+            self._active_stream = None
 
     def _run_openai_compatible(self, base_url: str, api_key: str,
                                model: str, name: str):
@@ -296,8 +320,11 @@ class AIWorker(QThread):
                 },
                 stream=True, timeout=180,
             )
+            self._active_stream = resp
             resp.raise_for_status()
             for line in resp.iter_lines():
+                if self.isInterruptionRequested():
+                    return
                 if not line:
                     continue
                 raw = line.decode("utf-8", errors="ignore").strip()
@@ -332,4 +359,10 @@ class AIWorker(QThread):
             self.error.emit(
                 f"Cannot reach {name} at {base}. Check base URL or network.")
         except Exception as e:
-            self.error.emit(f"{name} error: {e}")
+            if not self.isInterruptionRequested():
+                self.error.emit(f"{name} error: {e}")
+        finally:
+            active = self._active_stream
+            self._active_stream = None
+            if active is not None and hasattr(active, "close"):
+                active.close()

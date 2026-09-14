@@ -34,7 +34,17 @@ class _RecordingBus:
         return self._replies.pop(0) if self._replies else None
 
 
-def test_isotp_single_frame_is_pci_less():
+@pytest.fixture
+def armed_tx():
+    from core.safety import set_armed
+    set_armed(True)
+    try:
+        yield
+    finally:
+        set_armed(False)
+
+
+def test_isotp_single_frame_is_pci_less(armed_tx):
     from core.isotp import ISOTPSession
     bus = _RecordingBus()
     ISOTPSession(bus, 0x7E0, 0x7E8).send(bytes([0x01, 0x0C]), timeout=0.001)
@@ -44,7 +54,7 @@ def test_isotp_single_frame_is_pci_less():
     assert bus.sent[0][:4] != bytes([0x03, 0x02, 0x01, 0x0C])
 
 
-def test_isotp_frames_always_8_bytes():
+def test_isotp_frames_always_8_bytes(armed_tx):
     from core.isotp import ISOTPSession
     bus = _RecordingBus()
     ISOTPSession(bus, 0x7E0, 0x7E8).send(bytes([0x22, 0xF1, 0x90]), timeout=0.001)
@@ -53,7 +63,7 @@ def test_isotp_frames_always_8_bytes():
 
 # ── OBD-II poller sends a PCI-less service request ────────────────────────────
 
-def test_obd2_poller_request_is_pci_less():
+def test_obd2_poller_request_is_pci_less(armed_tx):
     from core.obd2_poller import OBD2Poller
     from core.isotp import ISOTPSession
     bus = _RecordingBus()

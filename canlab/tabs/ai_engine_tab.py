@@ -13,6 +13,7 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
 from core.ai_client import AIWorker
+from ui.lifecycle import LifecycleTabMixin
 from ui.animations import SpinnerWidget, ButtonPulse, TypewriterCursor, flash_widget
 
 BYTE_COLS = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
@@ -20,7 +21,13 @@ SPARKLINE_COLORS = ["#00ff88","#ffb300","#00aaff","#ff6b6b","#cc88ff",
                     "#ff9944","#44ffcc","#ff44aa"]
 
 
-class AIEngineTab(QWidget):
+class AIEngineTab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_worker", "_nl_worker")
+    timer_attrs = ("_spinner", "_btn_pulse", "_tw_cursor")
+
+    def shutdown(self):
+        self._queue.clear()
+        super().shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state      = get_state()
@@ -532,6 +539,8 @@ class AIEngineTab(QWidget):
             self.queue_progress.setVisible(False)
 
     def _run_analysis(self, from_queue=False):
+        if not self.worker_slot_available("_worker"):
+            return
         # Remember whether this run came from the batch queue so error/early-exit
         # paths can still advance it (otherwise one failure freezes the queue
         # with the progress bar stuck visible).
@@ -694,6 +703,8 @@ class AIEngineTab(QWidget):
     # ── NL Query ─────────────────────────────────────────────────────────────
 
     def _run_nl_query(self):
+        if not self.worker_slot_available("_nl_worker"):
+            return
         question = self.nl_input.text().strip()
         if not question:
             return

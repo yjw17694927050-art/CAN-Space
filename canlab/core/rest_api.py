@@ -20,6 +20,8 @@ import math
 import threading
 import secrets
 import ipaddress
+import time
+import socket
 
 
 def _json_safe(obj):
@@ -149,20 +151,26 @@ def _build_app(state_getter, token: str):
     @app.post("/inject", dependencies=auth)
     def inject_frame(req: InjectRequest):
         import can
-        from core.safety import is_armed
+        from core.can_service import CanServiceClosedError, secure_bus
+        from core.safety import BusNotArmedError
         state = state_getter()
-        if state.can_bus is None:
+        sender = getattr(state, "can_service", None) or state.can_bus
+        if sender is None:
             raise HTTPException(status_code=503, detail="CAN bus not connected")
-        if not is_armed():
-            raise HTTPException(status_code=409,
-                                detail="Bus transmit is disarmed; enable ARM TX in the app")
         try:
             arb_id = int(req.id, 16)
             data   = bytes(int(b, 16) for b in req.data.split())
             msg    = can.Message(arbitration_id=arb_id, data=data,
                                  is_extended_id=bool(req.extended))
-            state.can_bus.send(msg)
+            secure_bus(sender).send(msg)
             return {"ok": True}
+        except BusNotArmedError:
+            raise HTTPException(
+                status_code=409,
+                detail="Bus transmit is disarmed; enable ARM TX in the app",
+            )
+        except CanServiceClosedError as exc:
+            raise HTTPException(status_code=503, detail=str(exc))
         except HTTPException:
             raise
         except Exception as e:
@@ -192,8 +200,31 @@ class RestAPIServer:
         self.token   = token or secrets.token_urlsafe(24)
         self._server = None
         self._thread = None
+        self._run_error = None
 
-    def start(self):
+    @property
+    def is_running(self) -> bool:
+        return bool(
+            self._thread is not None
+            and self._thread.is_alive()
+            and self._server is not None
+            and getattr(self._server, "started", False)
+        )
+
+    def start(self, timeout: float = 5.0) -> bool:
+        if self._thread is not None and self._thread.is_alive():
+            return False
+        self._thread = None
+        self._server = None
+        self._run_error = None
+        family = socket.AF_INET6 if ":" in self._host else socket.AF_INET
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as probe:
+                probe.bind((self._host, self._port))
+        except OSError as exc:
+            raise OSError(
+                f"REST API address {self._host}:{self._port} is unavailable: {exc}"
+            ) from exc
         app = _build_app(self._state_getter, self.token)
         if app is None:
             raise ImportError("fastapi or uvicorn not installed")
@@ -201,13 +232,54 @@ class RestAPIServer:
         import uvicorn
         config      = uvicorn.Config(app, host=self._host, port=self._port, log_level="error")
         self._server = uvicorn.Server(config)
+
+        def run_server():
+            try:
+                self._server.run()
+            except BaseException as exc:
+                self._run_error = exc
+
         self._thread = threading.Thread(
-            target=self._server.run, daemon=True, name="canlab-rest-api"
+            target=run_server, daemon=True, name="canlab-rest-api"
         )
         self._thread.start()
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if getattr(self._server, "started", False):
+                return True
+            if not self._thread.is_alive():
+                error = self._run_error
+                self._thread = None
+                self._server = None
+                if error is not None:
+                    raise RuntimeError(f"REST API failed to start: {error}") from error
+                raise RuntimeError("REST API stopped before it began listening")
+            time.sleep(0.01)
 
-    def stop(self):
-        if self._server:
-            self._server.should_exit = True
+        server, thread = self._server, self._thread
+        server.should_exit = True
+        thread.join(min(timeout, 1.0))
+        if not thread.is_alive():
+            self._server = None
+            self._thread = None
+        raise TimeoutError(
+            f"REST API did not begin listening within {timeout:.3f} seconds"
+        )
+
+    def stop(self, timeout: float = 5.0) -> bool:
+        server, thread = self._server, self._thread
+        if server is None or thread is None:
+            self._server = None
+            self._thread = None
+            return True
+        server.should_exit = True
+        if thread is threading.current_thread():
+            raise RuntimeError("REST API thread cannot wait for itself")
+        thread.join(timeout)
+        if thread.is_alive():
+            raise TimeoutError(
+                f"REST API thread did not stop within {timeout:.3f} seconds"
+            )
         self._server = None
         self._thread = None
+        return True

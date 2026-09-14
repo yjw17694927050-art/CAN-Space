@@ -10,6 +10,7 @@ from theme import COLORS, mono_font
 from core.state import get_state
 from core.obd2_pids import PID_TABLE, DEFAULT_PIDS
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
 class _GaugeWidget(QWidget):
@@ -62,11 +63,16 @@ class _GaugeWidget(QWidget):
         p.end()
 
 
-class OBDDashboardTab(QWidget):
+class OBDDashboardTab(LifecycleTabMixin, QWidget):
+    worker_attrs = ("_poller", "_discover_worker")
+
+    def stop_can_tasks(self):
+        self.shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state   = get_state()
         self._poller  = None
+        self._discover_worker = None
         self._gauges: dict[int, _GaugeWidget] = {}
         self._build_ui()
         self._state.can_connected.connect(self._on_can_status)
@@ -177,6 +183,8 @@ class OBDDashboardTab(QWidget):
         self.btn_stop.setEnabled(False)
 
     def _discover_pids(self):
+        if not self.worker_slot_available("_discover_worker"):
+            return
         bus = self._state.can_bus
         if bus is None:
             QMessageBox.information(self, tr("obd.msgNoBus.title"), tr("obd.msgNoBus.text"))

@@ -165,7 +165,9 @@ python main.py
 pytest tests/ -q
 ```
 
-**预期结果 Expected**：151 passed, 1 skipped（跳过的是 MDF 测试，需要可选的 `asammdf` 依赖）。
+测试数量会随回归用例增长，因此这里不固定 `passed` 数量。应保证零失败，并用
+`pytest tests/ -q -rs` 检查每个跳过项的实时原因。当前仅在未安装可选的
+OpenCV/RapidOCR 视觉依赖时预期跳过对应视觉参考测试；不要沿用历史跳过说明。
 
 ### 代码风格 / Code Style
 

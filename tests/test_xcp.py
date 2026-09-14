@@ -8,7 +8,18 @@ run with no hardware library present.
 """
 import pytest
 
+from core.safety import BusNotArmedError, set_armed
 from core.xcp import XCPClient, XCPError, XCP_ERROR_CODES
+
+
+@pytest.fixture(autouse=True)
+def _armed_for_protocol_tests():
+    """The protocol tests intentionally transmit; arm only for each test."""
+    set_armed(True)
+    try:
+        yield
+    finally:
+        set_armed(False)
 
 
 class FakeMsg:
@@ -206,3 +217,14 @@ def test_timeout_raises_xcperror():
 
 def test_error_codes_table_present():
     assert XCP_ERROR_CODES[0x20] == "ERR_CMD_UNKNOWN"
+
+
+def test_disarmed_client_never_calls_underlying_bus_send():
+    """Every XCP command must cross the same last-line transmit gate."""
+    set_armed(False)
+    client, bus = make_client()
+
+    with pytest.raises(BusNotArmedError):
+        client.connect()
+
+    assert bus.sent == []

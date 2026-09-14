@@ -11,13 +11,27 @@ from PyQt6.QtGui import QColor, QBrush
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
+from ui.lifecycle import LifecycleTabMixin
 
 
-class DiagnosticsTab(QWidget):
+class DiagnosticsTab(LifecycleTabMixin, QWidget):
+    worker_attrs = (
+        "_uds_worker", "_dtc_worker", "_deep_worker", "_svc_worker",
+        "_sa_worker", "_clear_dtc_worker",
+    )
+    timer_attrs = ("_health_timer",)
+
+    def stop_can_tasks(self):
+        self.shutdown()
     def __init__(self, parent=None):
         super().__init__(parent)
         self._state        = get_state()
         self._uds_worker   = None
+        self._dtc_worker   = None
+        self._deep_worker  = None
+        self._svc_worker   = None
+        self._sa_worker    = None
+        self._clear_dtc_worker = None
         self._health_meter = None
         self._health_timer = QTimer()
         self._health_timer.setInterval(1000)
@@ -232,6 +246,8 @@ class DiagnosticsTab(QWidget):
             self.sa_script_edit.setText(path)
 
     def _sa_start(self):
+        if not self.worker_slot_available("_sa_worker"):
+            return
         bus = self._state.can_bus
         if bus is None:
             self.sa_log.append(tr("diag.err_no_bus"))
@@ -400,6 +416,8 @@ class DiagnosticsTab(QWidget):
         return self._state.can_bus
 
     def _scan_pids(self):
+        if not self.worker_slot_available("_uds_worker"):
+            return
         bus = self._get_bus()
         if bus is None:
             self.uds_log.append(tr("diag.err_no_bus"))
@@ -425,6 +443,8 @@ class DiagnosticsTab(QWidget):
             self.pid_table.setItem(row, ci, item)
 
     def _read_dtc(self):
+        if not self.worker_slot_available("_dtc_worker"):
+            return
         bus = self._get_bus()
         if bus is None:
             self.uds_log.append(tr("diag.err_no_bus"))
@@ -447,7 +467,8 @@ class DiagnosticsTab(QWidget):
         self.uds_log.append(f"DTCs: {dtcs}")
 
     def _clear_dtc(self):
-        import can
+        if self._clear_dtc_worker and self._clear_dtc_worker.isRunning():
+            return
         from core.safety import is_armed
         bus = self._get_bus()
         if bus is None:
@@ -468,14 +489,30 @@ class DiagnosticsTab(QWidget):
         )
         if confirm != QMessageBox.StandardButton.Yes:
             return
-        try:
-            data = bytes([0x04, 0x14, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00])
-            msg  = can.Message(arbitration_id=0x7DF, data=data, is_extended_id=False)
-            bus.send(msg)
-            self.uds_log.append(tr("diag.sent_clear_dtc"))
-            self.dtc_text.setPlainText(tr("diag.cleared"))
-        except Exception as e:
-            self.uds_log.append(f"ERROR: {e}")
+        from core.can_operations import clear_dtc
+        from ui.can_operation_worker import CanOperationWorker
+
+        self.btn_clear_dtc.setEnabled(False)
+        worker = CanOperationWorker(clear_dtc, bus, parent=self)
+        self._clear_dtc_worker = worker
+        worker.succeeded.connect(self._on_clear_dtc_success)
+        worker.failed.connect(self._on_clear_dtc_error)
+        worker.finished.connect(self._on_clear_dtc_finished)
+        worker.start()
+
+    def _on_clear_dtc_success(self, payload):
+        self.uds_log.append(tr("diag.sent_clear_dtc"))
+        self.dtc_text.setPlainText(tr("diag.cleared"))
+        self._on_uds_response(0x7E8, bytes(payload))
+
+    def _on_clear_dtc_error(self, error: str):
+        message = f"Clear DTC failed: {error}"
+        self.uds_log.append(f"ERROR: {message}")
+        self.dtc_text.setPlainText(message)
+
+    def _on_clear_dtc_finished(self):
+        self.btn_clear_dtc.setEnabled(True)
+        self._clear_dtc_worker = None
 
     def _on_uds_response(self, arb_id: int, data: bytes):
         hex_data = " ".join(f"{b:02X}" for b in data)
@@ -527,6 +564,8 @@ class DiagnosticsTab(QWidget):
         return w
 
     def _start_deep_scan(self):
+        if not self.worker_slot_available("_deep_worker"):
+            return
         bus = self._get_bus()
         if bus is None:
             self.deep_log.append(tr("diag.err_no_bus"))
@@ -607,6 +646,8 @@ class DiagnosticsTab(QWidget):
         return w
 
     def _start_svc_scan(self):
+        if not self.worker_slot_available("_svc_worker"):
+            return
         bus = self._get_bus()
         if bus is None:
             self.svc_status.setText(tr("diag.err_no_bus"))
@@ -738,28 +779,11 @@ class DiagnosticsTab(QWidget):
         self._health_history.clear()
 
     def _health_tick(self):
-        if self._health_meter is None:
-            return
-        # Feed live frames from live CAN worker if connected
-        bus = self._state.can_bus
-        if bus:
-            import time
-            now = time.monotonic()
-            # Non-blocking check
-            frame = None
-            try:
-                frame = bus.recv(timeout=0.0)
-            except Exception:
-                pass
-            if frame:
-                is_err = getattr(frame, "is_error_frame", False)
-                can_id = f"{frame.arbitration_id:03X}"
-                self._health_meter.add_frame(
-                    getattr(frame, "dlc", 8), now, can_id, is_err
-                )
-        snap = self._health_meter.snapshot()
-        self._state.bus_health = snap
-        self._state.bus_health_update.emit(snap)
+        # The main receiver is the sole raw-Bus consumer and publishes health
+        # snapshots.  This GUI timer only refreshes the last published state.
+        snap = self._state.bus_health
+        if snap and "current_load" in snap:
+            self._on_health_update(snap)
 
     def _on_health_update(self, snap: dict):
         self.lbl_h_errors.setText(str(snap["error_frames"]))

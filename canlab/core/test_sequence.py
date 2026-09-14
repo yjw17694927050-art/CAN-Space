@@ -68,7 +68,8 @@ class TestSequenceWorker(QThread):
     def __init__(self, steps: list[TestStep], bus, parent=None):
         super().__init__(parent)
         self._steps   = steps
-        self._bus     = bus
+        from core.can_service import protocol_bus
+        self._bus     = protocol_bus(bus, (), transaction_key="test-sequence")
         self._running = True
         self._log: list[str] = []
 
