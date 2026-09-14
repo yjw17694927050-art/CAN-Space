@@ -36,7 +36,7 @@ from tabs.gateway_tab import GatewayTab
 from ui.animations import PulsingDot, CountUpLabel
 from settings_dialog import (
     SettingsDialog, load_api_key, load_gh_token,
-    load_groq_key, load_ai_provider, load_ai_model,
+    load_groq_key, load_ai_provider, load_ai_model, load_vehicle_pack,
 )
 
 
@@ -163,6 +163,7 @@ class MainWindow(QMainWindow):
             model=load_ai_model(),
             groq_key=load_groq_key(),
             api_key=self._api_key,
+            vehicle_pack=load_vehicle_pack(),
         )
         self._load_plugins()
 
@@ -1017,6 +1018,7 @@ class MainWindow(QMainWindow):
                 model=dlg.get_ai_model(),
                 groq_key=dlg.get_groq_key(),
                 api_key=self._api_key,
+                vehicle_pack=dlg.get_vehicle_pack(),
             )
             gh_url = dlg.get_github_url()
             if gh_url and not self.gh_url_edit.text().strip():

@@ -30,7 +30,7 @@
 - [x] 抽离 `ai_client.py` 中硬编码的 `SYSTEM_PROMPT`（Hyundai/Kona）。
 - [x] 引入"车型知识包 / vehicle knowledge pack"概念：车型特征(总线速率、字节序、counter/checksum 位置习惯)为可配置 JSON，AI 提示词按所选包组装（`core/vehicle_pack.py` + `canlab/vehicle_packs/*.json`；`AIWorker.vehicle_pack` 参数驱动）。
 - [x] 提供默认通用包（不指定车厂）。
-- [ ] （后续任务）设置页/模型配置处提供"车型知识包"下拉选择，落地"所选包"的用户侧切换。
+- [x] （后续任务）设置页/模型配置处提供"车型知识包"下拉选择，落地"所选包"的用户侧切换。（已完成：设置页 API KEYS 页新增车型包下拉，QSettings 持久化，AI 引擎分析/NL 查询均按所选包组装提示词）
 
 ### 1.2 通用 AI Provider 抽象层（PRD R3.1）
 - [x] 新增 `_run_openai_compatible()`：base_url + api_key + model 三参数即可复用任一 OpenAI 兼容端点（基于 `requests` 流式 SSE，不新增 openai 依赖）。

@@ -28,6 +28,7 @@ class AIEngineTab(QWidget):
         self._groq_key   = ""
         self._provider   = "Anthropic"
         self._model      = "claude-sonnet-4-6"
+        self._vehicle_pack = "generic"
         self._queue:     list  = []
         self._worker     = None
         self._current_id = ""
@@ -50,10 +51,12 @@ class AIEngineTab(QWidget):
         self._api_key = key
 
     def set_ai_config(self, provider: str, model: str,
-                      groq_key: str = "", api_key: str = ""):
-        self._provider = provider
-        self._model    = model
-        self._groq_key = groq_key
+                      groq_key: str = "", api_key: str = "",
+                      vehicle_pack: str = "generic"):
+        self._provider     = provider
+        self._model        = model
+        self._groq_key     = groq_key
+        self._vehicle_pack = vehicle_pack
         if api_key:
             self._api_key = api_key
         self._update_provider_ui()
@@ -580,6 +583,7 @@ class AIEngineTab(QWidget):
             provider=self._provider,
             model=self._model,
             groq_key=self._groq_key,
+            vehicle_pack=self._vehicle_pack,
             ml_insights=ml_insights,
         )
         self._worker.chunk_received.connect(self._on_chunk)
@@ -733,6 +737,7 @@ class AIEngineTab(QWidget):
             provider=self._provider,
             model=self._model,
             groq_key=self._groq_key,
+            vehicle_pack=self._vehicle_pack,
         )
         self._nl_worker.chunk_received.connect(
             lambda t: self.nl_response.insertPlainText(t)

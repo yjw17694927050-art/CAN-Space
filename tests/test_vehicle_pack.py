@@ -86,3 +86,51 @@ def test_aiworker_default_pack_is_generic():
     hw = AIWorker(api_key="", id_hex="0", frames_df=pd.DataFrame(),
                   vehicle_pack="hyundai_kia")
     assert "Hyundai Kona" in hw._system_prompt
+
+
+def test_save_load_vehicle_pack_roundtrip():
+    pytest.importorskip("PyQt6")
+    from PyQt6.QtCore import QSettings
+    from settings_dialog import load_vehicle_pack, save_vehicle_pack
+
+    qs = QSettings("CAN-Space", "CAN-Space")
+    original = qs.value("vehicle_pack", None)
+    try:
+        save_vehicle_pack("hyundai_kia")
+        assert load_vehicle_pack() == "hyundai_kia"
+    finally:
+        if original is None:
+            qs.remove("vehicle_pack")
+        else:
+            qs.setValue("vehicle_pack", original)
+
+
+def test_load_vehicle_pack_defaults_and_unknown_fall_back():
+    pytest.importorskip("PyQt6")
+    from PyQt6.QtCore import QSettings
+    from settings_dialog import load_vehicle_pack, save_vehicle_pack
+
+    qs = QSettings("CAN-Space", "CAN-Space")
+    original = qs.value("vehicle_pack", None)
+    try:
+        qs.remove("vehicle_pack")
+        assert load_vehicle_pack() == "generic"
+        save_vehicle_pack("nonexistent_pack")
+        assert load_vehicle_pack() == "generic"
+    finally:
+        if original is None:
+            qs.remove("vehicle_pack")
+        else:
+            qs.setValue("vehicle_pack", original)
+
+
+def test_set_ai_config_accepts_vehicle_pack(qtbot):
+    pytest.importorskip("PyQt6")
+    from tabs.ai_engine_tab import AIEngineTab
+
+    tab = AIEngineTab()
+    qtbot.addWidget(tab)
+    assert tab._vehicle_pack == "generic"
+    tab.set_ai_config(provider="Anthropic", model="claude-sonnet-5",
+                      vehicle_pack="hyundai_kia")
+    assert tab._vehicle_pack == "hyundai_kia"

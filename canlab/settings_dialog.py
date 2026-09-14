@@ -31,6 +31,17 @@ def load_saved_language() -> str:
         "language", LANGUAGE_ZH, type=str)
     return code if code in _LANG else LANGUAGE_ZH
 
+
+def save_vehicle_pack(name: str) -> None:
+    QSettings("CAN-Space", "CAN-Space").setValue("vehicle_pack", name)
+
+
+def load_vehicle_pack() -> str:
+    from core.vehicle_pack import get_pack
+    name = QSettings("CAN-Space", "CAN-Space").value(
+        "vehicle_pack", "generic", type=str)
+    return get_pack(name).name
+
 # Provider → available models
 AI_MODELS = {
     "Anthropic": [
@@ -191,6 +202,15 @@ class SettingsDialog(QDialog):
         self.language_combo.addItem(tr("settings.language.zh"), LANGUAGE_ZH)
         self.language_combo.addItem(tr("settings.language.en"), LANGUAGE_EN)
         model_g_lay.addWidget(self.language_combo, 3, 1)
+        # Vehicle knowledge pack (P1.1)
+        self.lbl_vehicle_pack = QLabel(tr("settings.vehicle_pack"))
+        model_g_lay.addWidget(self.lbl_vehicle_pack, 4, 0)
+        self.vehicle_pack_combo = QComboBox()
+        self.vehicle_pack_combo.setFont(mono_font(9))
+        from core.vehicle_pack import load_all_packs
+        for name, pack in load_all_packs().items():
+            self.vehicle_pack_combo.addItem(pack.display_name(), name)
+        model_g_lay.addWidget(self.vehicle_pack_combo, 4, 1)
         api_lay.addWidget(self.model_grp)
 
         # Wire provider → model list update
@@ -416,6 +436,7 @@ class SettingsDialog(QDialog):
         self.lbl_language.setText(tr("settings.language"))
         self.language_combo.setItemText(0, tr("settings.language.zh"))
         self.language_combo.setItemText(1, tr("settings.language.en"))
+        self.lbl_vehicle_pack.setText(tr("settings.vehicle_pack"))
 
     def _on_provider_changed(self, provider: str):
         self.model_combo.blockSignals(True)
@@ -445,6 +466,11 @@ class SettingsDialog(QDialog):
         if midx >= 0:
             self.model_combo.setCurrentIndex(midx)
 
+        # Restore saved vehicle pack
+        pidx = self.vehicle_pack_combo.findData(load_vehicle_pack())
+        if pidx >= 0:
+            self.vehicle_pack_combo.setCurrentIndex(pidx)
+
         # Community URL default
         from core.state import get_state
         state = get_state()
@@ -471,6 +497,7 @@ class SettingsDialog(QDialog):
         save_ai_provider(self.provider_combo.currentText())
         save_ai_model(self.model_combo.currentText())
         save_language(self.language_combo.currentData() or current_language())
+        save_vehicle_pack(self.vehicle_pack_combo.currentData() or "generic")
 
         # Persist new settings to AppState
         from core.state import get_state
@@ -588,3 +615,6 @@ class SettingsDialog(QDialog):
 
     def get_ai_model(self) -> str:
         return self.model_combo.currentText()
+
+    def get_vehicle_pack(self) -> str:
+        return self.vehicle_pack_combo.currentData() or "generic"

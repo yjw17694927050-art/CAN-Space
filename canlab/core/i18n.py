@@ -43,6 +43,7 @@ _ZH = {
     "settings.ai_provider": "AI 提供商",
     "settings.model": "模型",
     "settings.active_ai": "当前 AI 提供商",
+    "settings.vehicle_pack": "车型知识包",
     "settings.reset": "重置为默认",
     # common
     "common.close": "关闭",
@@ -551,6 +552,7 @@ _EN = {
     "settings.ai_provider": "Provider",
     "settings.model": "Model",
     "settings.active_ai": "Active AI Provider",
+    "settings.vehicle_pack": "Vehicle knowledge pack",
     "settings.reset": "Reset to defaults",
     # common
     "common.close": "Close",
