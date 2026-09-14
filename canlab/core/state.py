@@ -1,6 +1,25 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 import pandas as pd
 
+# Timestamp provenance tags (P2.3 trust infrastructure). Stored as a pandas
+# category column so the per-frame cost is ~1 byte.
+TS_SOURCE_ADAPTER = "adapter_hw"   # adapter/kernel timestamp from live capture
+TS_SOURCE_LOG     = "log_file"     # timestamp parsed from a log file
+TS_SOURCE_PC      = "pc_clock"     # PC wall-clock fallback
+TS_SOURCE_COLUMN  = "TsSource"
+
+
+def _ensure_ts_source(df: pd.DataFrame, source: str) -> pd.DataFrame:
+    """Tag df with a timestamp-source column; never overwrite existing tags."""
+    if df is None or df.empty or TS_SOURCE_COLUMN in df.columns:
+        return df
+    df = df.copy()
+    df[TS_SOURCE_COLUMN] = pd.Categorical(
+        [source] * len(df),
+        categories=[TS_SOURCE_ADAPTER, TS_SOURCE_LOG, TS_SOURCE_PC],
+    )
+    return df
+
 
 class AppState(QObject):
     id_selected       = pyqtSignal(str)
@@ -144,17 +163,20 @@ class AppState(QObject):
         self.selected_id = hex_id
         self.id_selected.emit(hex_id)
 
-    def load_frames(self, df: pd.DataFrame, source_name: str):
-        self.frames_df = df
-        count = len(df)
+    def load_frames(self, df: pd.DataFrame, source_name: str,
+                    timestamp_source: str = TS_SOURCE_LOG):
+        self.frames_df = _ensure_ts_source(df, timestamp_source)
+        count = len(self._frames_base)
         self.sources.append({"name": source_name, "count": count})
         self.frames_loaded.emit(count)
         self.source_added.emit(source_name, count)
         self.frames_updated.emit()
 
-    def append_frames(self, new_df: pd.DataFrame):
+    def append_frames(self, new_df: pd.DataFrame,
+                      timestamp_source: str = TS_SOURCE_ADAPTER):
         if new_df is None or new_df.empty:
             return
+        new_df = _ensure_ts_source(new_df, timestamp_source)
         # O(chunk): just stash the chunk and invalidate the cache. The full
         # DataFrame is rebuilt lazily on the next read (throttled by the UI).
         self._frame_chunks.append(new_df)
@@ -186,6 +208,13 @@ class AppState(QObject):
         if 0 <= index < len(self.dbc_signals):
             self.dbc_signals.pop(index)
             self.dbc_updated.emit()
+
+    def timestamp_sources(self) -> set:
+        """Provenance tags present in the current frame set (P2.3)."""
+        df = self.frames_df
+        if df.empty or TS_SOURCE_COLUMN not in df.columns:
+            return set()
+        return set(df[TS_SOURCE_COLUMN].dropna().unique())
 
     def get_frames_for_id(self, hex_id: str) -> pd.DataFrame:
         if self.frames_df.empty:

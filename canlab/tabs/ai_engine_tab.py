@@ -622,6 +622,10 @@ class AIEngineTab(QWidget):
         self._state.signal_analyzed.emit(self._current_id)
         self._state.analyzed_ids[self._current_id] = full_response
         self._update_queue_item(self._current_id, "done")
+        from core.event_log import log_event
+        log_event("ai.analysis", func="_on_finished", id=self._current_id,
+                  provider=self._provider, model=self._model, ok=True,
+                  response_chars=len(full_response))
 
         # Auto-save to memory if from queue
         if from_queue:
@@ -638,6 +642,9 @@ class AIEngineTab(QWidget):
         self.btn_analyze.setEnabled(True)
         flash_widget(self.response_text, COLORS.get("error", "#ff4444"), 600)
         self._update_queue_item(self._current_id, "error")
+        from core.event_log import log_event
+        log_event("ai.analysis", func="_on_error", id=self._current_id,
+                  provider=self._provider, model=self._model, error=err)
         # Keep the batch queue moving instead of stalling on one failure.
         if getattr(self, "_current_from_queue", False):
             self._advance_queue(self._current_id)

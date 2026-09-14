@@ -66,9 +66,9 @@
 > 说明：各家默认模型名（qwen-plus / deepseek-chat / moonshot-v1-8k / glm-4-flash）为公开文档中长期稳定型号；新模型可直接在设置页模型框输入，无需等版本更新。
 
 ### 2.3 可信度基建（汽车测试工程师视角的可靠底线）
-- [ ] 时间戳标注来源（PC 时间 vs CAN 硬件时间戳）并可视化区分。
-- [ ] 增加 总线负载率 / bus-off / 采样率 / 丢帧率 显示。
-- [ ] 统一结构化日志落盘（改现状分散的错误提示）。
+- [x] 时间戳标注来源（PC 时间 vs CAN 硬件时间戳）并可视化区分。（`core/state.py` 新增 `TsSource` 分类列，区分 `adapter_hw`/`log_file`/`pc_clock`；frames_tab 过滤栏实时显示来源标签）
+- [x] 增加 总线负载率 / bus-off / 采样率 / 丢帧率 显示。（`core/bus_health.py` BusHealthMeter 实现错误帧计数、bus-off 事件、负载均值/峰值、ID 静默检测；主窗口状态栏每秒刷新健康摘要）
+- [x] 统一结构化日志落盘（改现状分散的错误提示）。（新增 `core/event_log.py`，事件按类型 JSONL 落盘 `~/.canlab/logs/events-YYYYMMDD.jsonl`；CAN 连接/断开、日志加载、AI 分析等关键路径已接入；菜单新增"打开事件日志目录"）
 
 **退出标准**：5 分钟内能完成"加载样例→帧表格→出 DBC"；≥3 家国产模型可用；单界面能读总线健康状态；测试通过。
 

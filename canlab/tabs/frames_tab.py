@@ -92,6 +92,11 @@ class FramesTab(QWidget):
         self.lbl_count.setObjectName("label_dim")
         fb_lay.addWidget(self.lbl_count)
 
+        # Timestamp provenance badge (P2.3)
+        self.lbl_ts_source = QLabel("")
+        self.lbl_ts_source.setObjectName("label_dim")
+        fb_lay.addWidget(self.lbl_ts_source)
+
         lay.addWidget(filter_bar)
 
         # Table
@@ -118,6 +123,15 @@ class FramesTab(QWidget):
 
     def _filter_by_id(self, hex_id: str):
         self.filter_id.setText(hex_id)
+
+    def _update_ts_source_label(self, df):
+        from core.state import TS_SOURCE_COLUMN
+        if TS_SOURCE_COLUMN not in df.columns:
+            self.lbl_ts_source.setText("")
+            return
+        sources = sorted(df[TS_SOURCE_COLUMN].dropna().unique())
+        labels = [tr(f"frames.ts_src.{s}") for s in sources]
+        self.lbl_ts_source.setText(tr("frames.ts_source", src=" / ".join(labels)))
 
     def _refresh(self):
         if self._frozen:
@@ -147,6 +161,7 @@ class FramesTab(QWidget):
         total = len(fdf)
         fdf = fdf.tail(MAX_DISPLAY)
         self.lbl_count.setText(tr("frames.count", shown=len(fdf), total=total))
+        self._update_ts_source_label(df)
 
         # Dynamic byte columns (CAN FD support)
         active_byte_cols = _active_byte_cols(fdf)

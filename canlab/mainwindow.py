@@ -6,8 +6,8 @@ from PyQt6.QtWidgets import (
     QTabWidget, QToolBar, QStatusBar, QLabel, QFileDialog,
     QMessageBox, QLineEdit, QPushButton, QProgressBar, QMenu,
 )
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSettings
-from PyQt6.QtGui import QFont, QColor, QAction
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSettings, QUrl
+from PyQt6.QtGui import QFont, QColor, QAction, QDesktopServices
 
 from theme import COLORS, mono_font
 from core.state import get_state
@@ -144,6 +144,8 @@ class MainWindow(QMainWindow):
         self._live_rows: list  = []
         self._live_last_ts: dict = {}   # ID -> last timestamp, for live Delta
         self._bus_load_meter   = BusLoadMeter()
+        self._bus_health_meter = None   # BusHealthMeter, created on CAN connect
+        self._health_timer     = None
         self._rest_api_server  = None
         # UI mode: simple (core tabs) vs advanced (all tabs) — P2.1
         self._ui_mode = QSettings("CAN-Space", "CAN-Space").value(
@@ -330,6 +332,9 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self._open_settings)
         a.setShortcut("Ctrl+,")
         settings_menu.addAction(a)
+        a = QAction(tr("menu.open_logs"), self)
+        a.triggered.connect(self._open_log_dir)
+        settings_menu.addAction(a)
 
         # View menu — simple / advanced mode (P2.1)
         view_menu = mb.addMenu(tr("menu.view"))
@@ -438,6 +443,12 @@ class MainWindow(QMainWindow):
         QSettings("CAN-Space", "CAN-Space").setValue("ui_mode", self._ui_mode)
         self._sync_ui_mode_actions()
 
+    def _open_log_dir(self):
+        """Open the structured JSONL event-log directory (P2.3)."""
+        from core.event_log import log_dir
+        os.makedirs(log_dir(), exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(log_dir()))
+
     def _show_tab(self, widget):
         """Switch to a tab, escalating to advanced mode if it is hidden."""
         if self.tabs.indexOf(widget) < 0:
@@ -485,6 +496,19 @@ class MainWindow(QMainWindow):
         sb.addPermanentWidget(self.load_bar)
         sb.addPermanentWidget(_sep())
 
+        # Bus health readout (P2.3): errors / bus-off / silent IDs + bitrate
+        self.lbl_bitrate = QLabel("—")
+        self.lbl_bitrate.setFont(mono_font(8))
+        self.lbl_bitrate.setStyleSheet(f"color:{COLORS['dim']}")
+        self.lbl_bitrate.setToolTip(tr("health.bitrate_tt"))
+        sb.addPermanentWidget(self.lbl_bitrate)
+        self.lbl_bus_health = QLabel(tr("health.disconnected"))
+        self.lbl_bus_health.setFont(mono_font(8))
+        self.lbl_bus_health.setStyleSheet(f"color:{COLORS['dim']}")
+        self.lbl_bus_health.setToolTip(tr("health.status_tt"))
+        sb.addPermanentWidget(self.lbl_bus_health)
+        sb.addPermanentWidget(_sep())
+
         self.lbl_frame_rate = QLabel("0 fps")
         self.lbl_frame_rate.setFont(mono_font(8))
         sb.addPermanentWidget(self.lbl_frame_rate)
@@ -528,6 +552,9 @@ class MainWindow(QMainWindow):
         # Parse off the GUI thread: large BLF/pcap/CSV captures take seconds and
         # would otherwise freeze the whole window (including the ability to
         # cancel). A busy indicator shows while the worker runs.
+        import time as _time
+        from core.event_log import log_event
+        t0 = _time.monotonic()
         self.statusBar().showMessage(f"Loading {os.path.basename(path)}…")
         from ui.compute_worker import ComputeWorker
         worker = ComputeWorker(parse_log_file, path)
@@ -538,14 +565,21 @@ class MainWindow(QMainWindow):
             self.statusBar().clearMessage()
             self._log_workers.remove(worker)
             if df is None or df.empty:
+                log_event("log.load", func="_load_log_file", level="warning",
+                          path=path, error="no frames found")
                 QMessageBox.warning(self, "Empty", "No frames found in file.")
                 return
             self._state.load_frames(df, os.path.basename(path))
+            log_event("log.load", func="_load_log_file", path=path,
+                      frames=len(df),
+                      duration_ms=(_time.monotonic() - t0) * 1000)
             self._correlate_annotations(df)
 
         def _failed(err):
             self.statusBar().clearMessage()
             self._log_workers.remove(worker)
+            log_event("log.load", func="_load_log_file", path=path, error=err,
+                      duration_ms=(_time.monotonic() - t0) * 1000)
             QMessageBox.critical(self, "Parse Error", err)
 
         worker.done.connect(_done)
@@ -737,6 +771,20 @@ class MainWindow(QMainWindow):
         self._act_disconnect.setEnabled(True)
         self._state.can_connected.emit(True)
 
+        # Bus health monitoring (P2.3): per-frame error/bus-off/gap tracking
+        # feeding the status-bar health readout once per second.
+        from core.bus_health import BusHealthMeter
+        from core.event_log import log_event
+        log_event("can.connect", func="_connect_can", iface=iface,
+                  channel=channel, bitrate=bitrate, fd=fd)
+        self._bus_health_meter = BusHealthMeter(bitrate=bitrate)
+        if self._health_timer is None:
+            self._health_timer = QTimer(self)
+            self._health_timer.setInterval(1000)
+            self._health_timer.timeout.connect(self._on_health_tick)
+        self._health_timer.start()
+        self.lbl_bitrate.setText(f"{bitrate // 1000}k")
+
     def _on_worker_started(self):
         # Share the bus handle with state so injection + diagnostics can use it.
         # The Bus object is created inside the worker thread and may not exist
@@ -779,6 +827,31 @@ class MainWindow(QMainWindow):
         self._act_disconnect.setEnabled(False)
         self._state.can_connected.emit(False)
         self._bus_load_meter.reset()
+        from core.event_log import log_event
+        log_event("can.disconnect", func="_disconnect_can",
+                  frames=self._live_frame_count)
+        if self._health_timer is not None:
+            self._health_timer.stop()
+        self._bus_health_meter = None
+        self.lbl_bus_health.setText(tr("health.disconnected"))
+        self.lbl_bitrate.setText("—")
+
+    def _on_health_tick(self):
+        """1 Hz snapshot of bus health to the status bar (P2.3)."""
+        meter = self._bus_health_meter
+        if meter is None:
+            return
+        snap = meter.snapshot()
+        self._state.bus_health_update.emit(snap)
+        self.lbl_bus_health.setText(
+            tr("health.status", err=snap["error_frames"],
+               busoff=snap["bus_off"], silent=len(snap["silent_ids"]))
+        )
+        self.lbl_bus_health.setStyleSheet(
+            f"color:{COLORS['error']}"
+            if snap["bus_off"] or snap["error_frames"]
+            else f"color:{COLORS['dim']}"
+        )
 
     def _on_live_frame(self, msg, bus_name=None):
         self._live_frame_count += 1
@@ -787,6 +860,14 @@ class MainWindow(QMainWindow):
         load = self._bus_load_meter.add_frame(msg.dlc, msg.timestamp)
         if load is not None:
             self._state.bus_load_update.emit(load)
+
+        # Bus health meter (P2.3): error frames + bus-off + per-ID gaps
+        if self._bus_health_meter is not None:
+            self._bus_health_meter.add_frame(
+                msg.dlc, msg.timestamp,
+                can_id=format(msg.arbitration_id, "03X"),
+                is_error=getattr(msg, "is_error_frame", False),
+            )
 
         # Trigger check
         if self._state.triggers:

@@ -50,6 +50,16 @@ _ZH = {
     "settings.show": "显示",
     "settings.key_hint": "获取密钥：{url}",
     "settings.no_key_needed": "本地服务，无需密钥",
+    # P2.3 trust infrastructure
+    "frames.ts_source": "时间戳来源：{src}",
+    "frames.ts_src.adapter_hw": "适配器硬件",
+    "frames.ts_src.log_file": "日志文件",
+    "frames.ts_src.pc_clock": "PC 时钟",
+    "health.disconnected": "健康：未连接",
+    "health.status": "错误 {err} · bus-off {busoff} · 静默ID {silent}",
+    "health.bitrate_tt": "当前总线比特率",
+    "health.status_tt": "错误帧 / bus-off 事件 / 超时静默的 CAN ID 数",
+    "menu.open_logs": "打开事件日志目录",
     # view menu (P2.1)
     "menu.view": "视图",
     "view.simple_mode": "精简模式",
@@ -583,6 +593,16 @@ _EN = {
     "settings.show": "Show",
     "settings.key_hint": "Get a key: {url}",
     "settings.no_key_needed": "Local server — no API key needed",
+    # P2.3 trust infrastructure
+    "frames.ts_source": "Timestamp source: {src}",
+    "frames.ts_src.adapter_hw": "adapter HW",
+    "frames.ts_src.log_file": "log file",
+    "frames.ts_src.pc_clock": "PC clock",
+    "health.disconnected": "Health: disconnected",
+    "health.status": "ERR {err} · BUS-OFF {busoff} · SILENT {silent}",
+    "health.bitrate_tt": "Current bus bitrate",
+    "health.status_tt": "Error frames / bus-off events / CAN IDs gone silent",
+    "menu.open_logs": "Open Event Log Folder",
     # view menu (P2.1)
     "menu.view": "View",
     "view.simple_mode": "Simple Mode",
