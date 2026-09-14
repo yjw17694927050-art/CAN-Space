@@ -3,10 +3,10 @@ from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QSplitter, QListWidget, QListWidgetItem,
     QPushButton, QLabel, QLineEdit, QComboBox, QGridLayout, QTextEdit,
     QFileDialog, QMessageBox, QHeaderView, QTableWidget, QTableWidgetItem,
-    QMenu,
+    QMenu, QToolButton,
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QBrush
+from PyQt6.QtGui import QColor, QBrush, QAction
 from theme import COLORS, mono_font
 from core.state import get_state
 from core.i18n import tr
@@ -79,35 +79,42 @@ class DBCBuilderTab(QWidget):
         btn_xref.clicked.connect(self._cross_ref)
         left_lay.addWidget(btn_xref)
 
-        btn_op_dbc = QPushButton(tr("dbc.btn_export_openpilot"))
-        btn_op_dbc.setToolTip(tr("dbc.tooltip_export_openpilot"))
-        btn_op_dbc.clicked.connect(self._export_openpilot_dbc)
-        left_lay.addWidget(btn_op_dbc)
+        # Advanced import/export folded into popup menus (P2.1 default-usable)
+        adv_imp = QToolButton()
+        adv_imp.setText(tr("dbc.menu_adv_import"))
+        adv_imp.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        imp_menu = QMenu(adv_imp)
+        a_matrix = QAction(tr("dbc.btn_import_matrix"), self)
+        a_matrix.setToolTip(tr("dbc.tooltip_import_matrix"))
+        a_matrix.triggered.connect(self._import_can_matrix)
+        a_arxml_imp = QAction(tr("dbc.btn_import_arxml"), self)
+        a_arxml_imp.setToolTip(tr("dbc.tooltip_import_arxml"))
+        a_arxml_imp.triggered.connect(self._import_arxml)
+        imp_menu.addAction(a_matrix)
+        imp_menu.addAction(a_arxml_imp)
+        adv_imp.setMenu(imp_menu)
+        left_lay.addWidget(adv_imp)
 
-        btn_lua = QPushButton(tr("dbc.btn_export_lua"))
-        btn_lua.setToolTip(tr("dbc.tooltip_export_lua"))
-        btn_lua.clicked.connect(self._export_lua_dissector)
-        left_lay.addWidget(btn_lua)
-
-        btn_matrix = QPushButton(tr("dbc.btn_import_matrix"))
-        btn_matrix.setToolTip(tr("dbc.tooltip_import_matrix"))
-        btn_matrix.clicked.connect(self._import_can_matrix)
-        left_lay.addWidget(btn_matrix)
-
-        btn_arxml_imp = QPushButton(tr("dbc.btn_import_arxml"))
-        btn_arxml_imp.setToolTip(tr("dbc.tooltip_import_arxml"))
-        btn_arxml_imp.clicked.connect(self._import_arxml)
-        left_lay.addWidget(btn_arxml_imp)
-
-        btn_arxml_exp = QPushButton(tr("dbc.btn_export_arxml"))
-        btn_arxml_exp.setToolTip(tr("dbc.tooltip_export_arxml"))
-        btn_arxml_exp.clicked.connect(self._export_arxml)
-        left_lay.addWidget(btn_arxml_exp)
-
-        btn_candbpp = QPushButton(tr("dbc.btn_export_candbpp"))
-        btn_candbpp.setToolTip(tr("dbc.tooltip_export_candbpp"))
-        btn_candbpp.clicked.connect(self._export_candbpp)
-        left_lay.addWidget(btn_candbpp)
+        adv_exp = QToolButton()
+        adv_exp.setText(tr("dbc.menu_adv_export"))
+        adv_exp.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        exp_menu = QMenu(adv_exp)
+        a_op = QAction(tr("dbc.btn_export_openpilot"), self)
+        a_op.setToolTip(tr("dbc.tooltip_export_openpilot"))
+        a_op.triggered.connect(self._export_openpilot_dbc)
+        a_lua = QAction(tr("dbc.btn_export_lua"), self)
+        a_lua.setToolTip(tr("dbc.tooltip_export_lua"))
+        a_lua.triggered.connect(self._export_lua_dissector)
+        a_arxml_exp = QAction(tr("dbc.btn_export_arxml"), self)
+        a_arxml_exp.setToolTip(tr("dbc.tooltip_export_arxml"))
+        a_arxml_exp.triggered.connect(self._export_arxml)
+        a_candb = QAction(tr("dbc.btn_export_candbpp"), self)
+        a_candb.setToolTip(tr("dbc.tooltip_export_candbpp"))
+        a_candb.triggered.connect(self._export_candbpp)
+        for act in (a_op, a_lua, a_arxml_exp, a_candb):
+            exp_menu.addAction(act)
+        adv_exp.setMenu(exp_menu)
+        left_lay.addWidget(adv_exp)
 
         splitter.addWidget(left)
 

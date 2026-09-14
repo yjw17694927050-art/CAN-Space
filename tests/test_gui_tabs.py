@@ -204,3 +204,23 @@ def test_leaf_tab_builds(qtbot: QtBot, frames, module, cls):
     tab.show()
     qtbot.wait(20)
     assert tab is not None
+
+
+def test_dbc_builder_advanced_io_folded_into_menus(qtbot: QtBot, frames):
+    """P2.1: the six advanced import/export actions live in two popup menus,
+    not as a wall of buttons on the first screen."""
+    from PyQt6.QtWidgets import QToolButton
+    from canlab.tabs.dbc_builder_tab import DBCBuilderTab
+
+    tab = DBCBuilderTab(parent=None)
+    qtbot.add_widget(tab)
+    tool_buttons = tab.findChildren(QToolButton)
+    assert len(tool_buttons) == 2
+    menus = [tb.menu() for tb in tool_buttons]
+    assert all(m is not None for m in menus)
+    counts = sorted(len(m.actions()) for m in menus)
+    assert counts == [2, 4]  # 2 advanced imports, 4 advanced exports
+    labels = [a.text() for m in menus for a in m.actions()]
+    assert any("ARXML" in t for t in labels)
+    assert any("CANdb++" in t for t in labels)
+    assert any("Lua" in t for t in labels)

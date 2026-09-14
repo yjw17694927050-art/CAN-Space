@@ -38,6 +38,7 @@ from settings_dialog import (
     SettingsDialog, load_api_key, load_gh_token,
     load_groq_key, load_ai_provider, load_ai_model, load_vehicle_pack,
 )
+from onboarding_dialog import maybe_show_onboarding, show_onboarding
 
 
 class LiveCANWorker(QThread):
@@ -169,6 +170,9 @@ class MainWindow(QMainWindow):
             vehicle_pack=load_vehicle_pack(),
         )
         self._load_plugins()
+
+        # First-run onboarding (P2.1) — deferred so the main window is visible first
+        QTimer.singleShot(300, lambda: maybe_show_onboarding(self))
 
     # ── Toolbar ───────────────────────────────────────────────────────────────
 
@@ -342,6 +346,10 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self._act_mode_simple)
         view_menu.addAction(self._act_mode_advanced)
         self._sync_ui_mode_actions()
+        view_menu.addSeparator()
+        a_ob = QAction(tr("view.onboarding"), self)
+        a_ob.triggered.connect(lambda: show_onboarding(self))
+        view_menu.addAction(a_ob)
 
     def _sync_ui_mode_actions(self):
         simple = self.__dict__.get("_act_mode_simple")
