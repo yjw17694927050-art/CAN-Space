@@ -45,6 +45,10 @@ _ZH = {
     "settings.active_ai": "当前 AI 提供商",
     "settings.vehicle_pack": "车型知识包",
     "settings.reset": "重置为默认",
+    # view menu (P2.1)
+    "menu.view": "视图",
+    "view.simple_mode": "精简模式",
+    "view.advanced_mode": "高级模式",
     # common
     "common.close": "关闭",
     # frames tab
@@ -554,6 +558,10 @@ _EN = {
     "settings.active_ai": "Active AI Provider",
     "settings.vehicle_pack": "Vehicle knowledge pack",
     "settings.reset": "Reset to defaults",
+    # view menu (P2.1)
+    "menu.view": "View",
+    "view.simple_mode": "Simple Mode",
+    "view.advanced_mode": "Advanced Mode",
     # common
     "common.close": "Close",
     # frames tab

@@ -143,6 +143,9 @@ class MainWindow(QMainWindow):
         self._live_last_ts: dict = {}   # ID -> last timestamp, for live Delta
         self._bus_load_meter   = BusLoadMeter()
         self._rest_api_server  = None
+        # UI mode: simple (core tabs) vs advanced (all tabs) — P2.1
+        self._ui_mode = QSettings("CAN-Space", "CAN-Space").value(
+            "ui_mode", "simple", type=str)
         self._plugins          = []
         self._multibus_config  = []
         self._multibus_worker  = None
@@ -321,6 +324,32 @@ class MainWindow(QMainWindow):
         a.setShortcut("Ctrl+,")
         settings_menu.addAction(a)
 
+        # View menu — simple / advanced mode (P2.1)
+        view_menu = mb.addMenu(tr("menu.view"))
+        from PyQt6.QtGui import QActionGroup
+        self._ui_mode_group = QActionGroup(self)
+        self._ui_mode_group.setExclusive(True)
+        self._act_mode_simple = QAction(tr("view.simple_mode"), self)
+        self._act_mode_simple.setCheckable(True)
+        self._act_mode_simple.triggered.connect(
+            lambda: self._set_ui_mode("simple"))
+        self._act_mode_advanced = QAction(tr("view.advanced_mode"), self)
+        self._act_mode_advanced.setCheckable(True)
+        self._act_mode_advanced.triggered.connect(
+            lambda: self._set_ui_mode("advanced"))
+        self._ui_mode_group.addAction(self._act_mode_simple)
+        self._ui_mode_group.addAction(self._act_mode_advanced)
+        view_menu.addAction(self._act_mode_simple)
+        view_menu.addAction(self._act_mode_advanced)
+        self._sync_ui_mode_actions()
+
+    def _sync_ui_mode_actions(self):
+        simple = self.__dict__.get("_act_mode_simple")
+        if simple is None:
+            return
+        simple.setChecked(self._ui_mode != "advanced")
+        self._act_mode_advanced.setChecked(self._ui_mode == "advanced")
+
     # ── Central layout ────────────────────────────────────────────────────────
 
     def _build_central(self):
@@ -354,26 +383,55 @@ class MainWindow(QMainWindow):
         self.ml_intel_tab     = SignalIntelligenceTab()
         self.gateway_tab      = GatewayTab()
 
-        self.tabs.addTab(self.frames_tab,       tr("tab.frames"))
-        self.tabs.addTab(self.signals_tab,      tr("tab.signals"))
-        self.tabs.addTab(self.plot_tab,         tr("tab.plot"))
-        self.tabs.addTab(self.ai_tab,           tr("tab.ai"))
-        self.tabs.addTab(self.dbc_tab,          tr("tab.dbc"))
-        self.tabs.addTab(self.codegen_tab,      tr("tab.codegen"))
-        self.tabs.addTab(self.intelligence_tab, tr("tab.intelligence"))
-        self.tabs.addTab(self.injection_tab,    tr("tab.injection"))
-        self.tabs.addTab(self.diagnostics_tab,  tr("tab.diagnostics"))
-        self.tabs.addTab(self.dashboard_tab,    tr("tab.dashboard"))
-        self.tabs.addTab(self.auto_re_tab,      tr("tab.autore"))
-        self.tabs.addTab(self.timeline_tab,     tr("tab.timeline"))
-        self.tabs.addTab(self.obd_tab,          tr("tab.obd"))
-        self.tabs.addTab(self.ml_intel_tab,     tr("tab.mlintel"))
-        self.tabs.addTab(self.gateway_tab,      tr("tab.gateway"))
+        # (widget, i18n key, is_core) — single source of truth for tab layout.
+        # Core set covers the default-usable workflow: capture → frames →
+        # signals → plot → AI → DBC (PRD R2 / ROADMAP P2.1).
+        self._tab_defs = [
+            (self.frames_tab,       "tab.frames",       True),
+            (self.signals_tab,      "tab.signals",      True),
+            (self.plot_tab,         "tab.plot",         True),
+            (self.ai_tab,           "tab.ai",           True),
+            (self.dbc_tab,          "tab.dbc",          True),
+            (self.codegen_tab,      "tab.codegen",      False),
+            (self.intelligence_tab, "tab.intelligence", False),
+            (self.injection_tab,    "tab.injection",    False),
+            (self.diagnostics_tab,  "tab.diagnostics",  False),
+            (self.dashboard_tab,    "tab.dashboard",    False),
+            (self.auto_re_tab,      "tab.autore",       False),
+            (self.timeline_tab,     "tab.timeline",     False),
+            (self.obd_tab,          "tab.obd",          False),
+            (self.ml_intel_tab,     "tab.mlintel",      False),
+            (self.gateway_tab,      "tab.gateway",      False),
+        ]
+
+        self._apply_ui_mode(self._ui_mode)
 
         main_lay.addWidget(self.tabs, stretch=1)
 
         self.inspector = InspectorPanel()
         main_lay.addWidget(self.inspector)
+
+    # ── Simple / Advanced UI mode (P2.1) ──────────────────────────────────────
+
+    def _apply_ui_mode(self, mode: str):
+        """Rebuild the tab bar for 'simple' (core tabs only) or 'advanced'."""
+        self._ui_mode = "advanced" if mode == "advanced" else "simple"
+        while self.tabs.count():
+            self.tabs.removeTab(0)  # detaches only; widgets stay alive
+        for widget, key, is_core in self._tab_defs:
+            if self._ui_mode == "advanced" or is_core:
+                self.tabs.addTab(widget, tr(key))
+
+    def _set_ui_mode(self, mode: str):
+        self._apply_ui_mode(mode)
+        QSettings("CAN-Space", "CAN-Space").setValue("ui_mode", self._ui_mode)
+        self._sync_ui_mode_actions()
+
+    def _show_tab(self, widget):
+        """Switch to a tab, escalating to advanced mode if it is hidden."""
+        if self.tabs.indexOf(widget) < 0:
+            self._set_ui_mode("advanced")
+        self.tabs.setCurrentWidget(widget)
 
     # ── Status bar ────────────────────────────────────────────────────────────
 
@@ -984,26 +1042,26 @@ class MainWindow(QMainWindow):
     # ── Toolbar actions ───────────────────────────────────────────────────────
 
     def _run_ai_re(self):
-        self.tabs.setCurrentIndex(3)
+        self._show_tab(self.ai_tab)
         self.ai_tab._add_all_unknown()
         self.ai_tab._run_queue()
 
     def _export_dbc(self):
-        self.tabs.setCurrentIndex(4)
+        self._show_tab(self.dbc_tab)
         self.dbc_tab._export_dbc()
 
     def _generate_code(self):
-        self.tabs.setCurrentIndex(5)
+        self._show_tab(self.codegen_tab)
 
     def _obd_discover(self):
-        self.tabs.setCurrentIndex(12)   # OBD-II tab
+        self._show_tab(self.obd_tab)
         self.obd_tab._discover_pids()
 
     def _open_ml_intel(self):
-        self.tabs.setCurrentIndex(13)   # ML INTEL tab
+        self._show_tab(self.ml_intel_tab)
 
     def _open_gateway(self):
-        self.tabs.setCurrentIndex(14)   # GATEWAY tab
+        self._show_tab(self.gateway_tab)
 
     def _open_settings(self):
         dlg = SettingsDialog(self)
@@ -1087,7 +1145,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(
                 f"CAN Matrix: imported {len(sigs)} signals from {os.path.basename(path)}", 5000
             )
-            self.tabs.setCurrentIndex(4)   # DBC Builder tab
+            self._show_tab(self.dbc_tab)
         except Exception as e:
             QMessageBox.critical(self, "Import Error", str(e))
 
@@ -1099,16 +1157,16 @@ class MainWindow(QMainWindow):
                 "Set a Community Profiles URL in Settings → GITHUB."
             )
             return
-        self.tabs.setCurrentIndex(6)   # INTELLIGENCE tab
+        self._show_tab(self.intelligence_tab)
         self.intelligence_tab._comm_fetch()
 
     def _analyze_id(self, hex_id: str):
-        self.tabs.setCurrentIndex(3)
+        self._show_tab(self.ai_tab)
         self.ai_tab.queue_id(hex_id)
         self.ai_tab._load_id(hex_id)
 
     def _plot_id(self, hex_id: str):
-        self.tabs.setCurrentIndex(2)
+        self._show_tab(self.plot_tab)
         self.plot_tab._highlight_id(hex_id)
 
     # ── Event handlers ────────────────────────────────────────────────────────
@@ -1164,16 +1222,12 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def _stop_tab_workers(self):
-        """Iterate all tabs and stop any background QThreads they own."""
-        tab_widget = self.findChild(QTabWidget)
-        if tab_widget is None:
-            return
+        """Stop background QThreads owned by any tab (visible or hidden)."""
         worker_attrs = (
             "_worker", "_inj_worker", "_replay_worker",
             "_scan_worker", "_fuzz_worker", "_seq_worker", "_nl_worker",
         )
-        for i in range(tab_widget.count()):
-            tab = tab_widget.widget(i)
+        for tab, _key, _core in self._tab_defs:
             for attr in worker_attrs:
                 worker = getattr(tab, attr, None)
                 if worker is None:
